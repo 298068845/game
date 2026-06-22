@@ -1,0 +1,62 @@
+{
+  "characters": [
+    {
+      "id":"char.linya","name":"林鸦","role":"失踪的档案员","tags":["盟友","学者"],
+      "check_stats":{"体魄":7,"洞察":13,"意志":11,"魅力":9,"学识":14},
+      "combat_stats":{"力量":6,"防御":8,"速度":11,"技巧":10,"生命":10},
+      "equipment":{"头盔":null,"盔甲":"equip.archive_coat","武器":"equip.signal_pistol","臂甲":null,"鞋子":null,"饰品":"equip.tide_charm"},
+      "inventory":{"item.tonic":1,"item.lens":1}
+    },
+    {
+      "id":"char.old_qiao","name":"老乔","role":"灯塔守卫","tags":["线人","港民"],
+      "check_stats":{"体魄":10,"洞察":11,"意志":12,"魅力":8,"学识":9},
+      "combat_stats":{"力量":10,"防御":11,"速度":7,"技巧":8,"生命":14},
+      "equipment":{"头盔":"equip.watch_cap","盔甲":"equip.oilskin","武器":"equip.lantern_hook","臂甲":null,"鞋子":"equip.deck_boots","饰品":null},
+      "inventory":{"item.tonic":2}
+    },
+    {
+      "id":"char.captain","name":"赫伯特船长","role":"灰帆号船长","tags":["嫌疑人"],
+      "check_stats":{"体魄":12,"洞察":10,"意志":13,"魅力":11,"学识":8},
+      "combat_stats":{"力量":13,"防御":12,"速度":9,"技巧":12,"生命":18},
+      "equipment":{"头盔":null,"盔甲":"equip.captain_armor","武器":"equip.lantern_hook","臂甲":"equip.iron_bracer","鞋子":"equip.deck_boots","饰品":"equip.tide_charm"},
+      "inventory":{"item.silver_salt":3}
+    }
+  ],
+  "enemies": [
+    {
+      "id":"enemy.brine_thrall","name":"盐蚀傀儡","role":"潮心造物","tags":["敌对","异变"],
+      "check_stats":{"体魄":14,"洞察":5,"意志":6,"魅力":2,"学识":3},
+      "combat_stats":{"力量":12,"防御":11,"速度":7,"技巧":9,"生命":18},
+      "equipment":{"头盔":null,"盔甲":null,"武器":"equip.rusty_anchor","臂甲":null,"鞋子":null,"饰品":null},
+      "inventory":{"item.silver_salt":2},"hp":18,"attack":3,"defense":11,"speed":7
+    },
+    {
+      "id":"enemy.smuggler","name":"走私打手","role":"灰帆号水手","tags":["敌对","人类"],
+      "check_stats":{"体魄":11,"洞察":8,"意志":8,"魅力":6,"学识":5},
+      "combat_stats":{"力量":11,"防御":9,"速度":10,"技巧":10,"生命":14},
+      "equipment":{"头盔":"equip.watch_cap","盔甲":"equip.oilskin","武器":"equip.lantern_hook","臂甲":null,"鞋子":"equip.deck_boots","饰品":null},
+      "inventory":{"item.tonic":1},"hp":14,"attack":2,"defense":10,"speed":9
+    }
+  ],
+  "equipment": [
+    {"id":"equip.watch_cap","name":"守夜帽","slot":"头盔","description":"厚呢帽遮挡海风。","bonuses":{"意志":1,"防御":1}},
+    {"id":"equip.archive_coat","name":"档案员长衣","slot":"盔甲","description":"内衬缝有防潮符文。","bonuses":{"学识":1,"防御":1,"生命":2}},
+    {"id":"equip.oilskin","name":"旧油布甲","slot":"盔甲","description":"结实但行动不便。","bonuses":{"防御":2,"速度":-1}},
+    {"id":"equip.captain_armor","name":"船长胸甲","slot":"盔甲","description":"灰帆号船长的仪式甲。","bonuses":{"防御":3,"意志":1,"生命":2}},
+    {"id":"equip.signal_pistol","name":"信号手枪","slot":"武器","description":"近距离也足够致命。","bonuses":{"技巧":2,"力量":1}},
+    {"id":"equip.lantern_hook","name":"提灯钩杖","slot":"武器","description":"守灯人驱赶海兽的工具。","bonuses":{"力量":2}},
+    {"id":"equip.rusty_anchor","name":"锈蚀锚钩","slot":"武器","description":"沉重的盐蚀武器。","bonuses":{"力量":3,"速度":-1}},
+    {"id":"equip.iron_bracer","name":"铆钉臂甲","slot":"臂甲","description":"保护持械手臂。","bonuses":{"防御":1,"技巧":1}},
+    {"id":"equip.deck_boots","name":"防滑甲靴","slot":"鞋子","description":"适合湿滑甲板。","bonuses":{"速度":1,"体魄":1}},
+    {"id":"equip.tide_charm","name":"潮汐护符","slot":"饰品","description":"低声提醒佩戴者保持清醒。","bonuses":{"洞察":1,"意志":2}}
+  ],
+  "items": [
+    {"id":"item.pass","name":"旧港通行证","type":"任务物品","description":"允许进入封锁码头。","max_stack":1},
+    {"id":"item.tonic","name":"提神药剂","type":"消耗品","description":"战斗中恢复6点生命。","max_stack":9},
+    {"id":"item.lens","name":"裂纹透镜","type":"任务物品","description":"能看见雾中的符文。","max_stack":1},
+    {"id":"item.silver_salt","name":"银灰盐块","type":"换金道具","description":"走私商人高价收购的异常盐块。","max_stack":99},
+    {"id":"item.ration","name":"旅行口粮","type":"消耗品","description":"食用后恢复30点饱腹值。","max_stack":20},
+    {"id":"item.salvage","name":"旧船零件","type":"换金道具","description":"从退潮残骸中回收的材料。","max_stack":99},
+    {"id":"item.herb","name":"雾生药草","type":"消耗品","description":"可用于调配药剂的潮湿药草。","max_stack":99}
+  ]
+}

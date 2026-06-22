@@ -1,0 +1,6 @@
+.godot/
+prototype*.png
+prototype.wav
+*_preview*.png
+*_preview.wav
+*.log

@@ -1,0 +1,545 @@
+﻿{
+    "id":  "scenario.mist_harbor",
+    "title":  "雾港余烬",
+    "estimated_minutes":  15,
+    "events":  [
+                   {
+                       "id":  "intro_01",
+                       "type":  "剧情事件",
+                       "location":  "渡船",
+                       "chapter":  "序幕",
+                       "speaker":  "旁白",
+                       "title":  "午夜来信",
+                       "text":  "暴雨敲打着调查所的窗。午夜之后，一封没有署名的信从门缝滑入：『林鸦在雾港失踪了。若想在退潮前找到她，去旧灯塔。不要相信灰帆号上的任何人。』信纸沾着盐粒，背面画着一个被划去的太阳。",
+                       "options":  [
+                                       {
+                                           "text":  "收好信件，前往雾港",
+                                           "next":  "intro_02"
+                                       }
+                                   ],
+                       "locked":  false,
+                       "prerequisites":  [
+
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "intro_02",
+                       "type":  "剧情事件",
+                       "location":  "渡船",
+                       "chapter":  "序幕",
+                       "speaker":  "旁白",
+                       "title":  "驶向雾港",
+                       "text":  "渡船在黑水间摇晃。船夫说雾港近来每晚都有人听见海底钟声，随后便忘记自己做过什么。远处，旧灯塔的光每隔十三秒熄灭一次。你有片刻时间整理能力与装备。",
+                       "options":  [
+                                       {
+                                           "text":  "调整角色能力",
+                                           "action":  "open_growth"
+                                       },
+                                       {
+                                           "text":  "保持现状，抵达码头",
+                                           "next":  "harbor_01"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "intro_01"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "harbor_01",
+                       "type":  "剧情事件",
+                       "location":  "雾港码头",
+                       "chapter":  "第一幕",
+                       "speaker":  "码头巡夜人",
+                       "title":  "封锁线",
+                       "text":  "『站住。今夜旧码头封锁。』巡夜人把灯举到你面前。他认出了那张旧港通行证，却仍然犹豫。你注意到他的袖口沾着银灰色粉末，与信纸上的盐粒十分相似。",
+                       "options":  [
+                                       {
+                                           "text":  "出示旧港通行证",
+                                           "next":  "harbor_02"
+                                       },
+                                       {
+                                           "text":  "询问银灰色粉末",
+                                           "next":  "harbor_powder"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "intro_02"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "harbor_powder",
+                       "type":  "剧情事件",
+                       "location":  "雾港码头",
+                       "chapter":  "第一幕",
+                       "speaker":  "码头巡夜人",
+                       "title":  "吞吞吐吐",
+                       "text":  "巡夜人的手明显抖了一下。『灰帆号卸下来的防潮粉，仅此而已。』他说谎时看向灯塔，而不是停泊着灰帆号的东侧泊位。",
+                       "options":  [
+                                       {
+                                           "text":  "记下异常，出示通行证",
+                                           "flag":  "noticed_powder",
+                                           "next":  "harbor_02"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "harbor_01"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "harbor_02",
+                       "type":  "随机事件",
+                       "location":  "雾港码头",
+                       "chapter":  "第一幕",
+                       "speaker":  "旁白",
+                       "title":  "潮池里的低语",
+                       "text":  "穿过封锁线时，潮池中浮起一只铜制怀表。表盖刻着林鸦的名字，指针停在十三分。雾里传来孩童般的声音：『把它交给灯塔，他会告诉你门在哪里。』这是本剧本预置的随机事件模板实例，地点、线索与警告均可由事件库替换。",
+                       "options":  [
+                                       {
+                                           "text":  "拾起怀表",
+                                           "item":  "林鸦的怀表",
+                                           "next":  "square_01"
+                                       },
+                                       {
+                                           "text":  "不碰它，继续前进",
+                                           "next":  "square_01"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "harbor_01"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "square_01",
+                       "type":  "剧情事件",
+                       "location":  "雾港广场",
+                       "chapter":  "第一幕",
+                       "speaker":  "旁白",
+                       "title":  "三条路线",
+                       "text":  "雾港广场空无一人。通向旧灯塔的石阶上有拖拽痕迹；酒馆仍亮着灯；灰帆号则在东侧泊位无声摇晃。退潮正在逼近，你只能先调查一处。",
+                       "options":  [
+                                       {
+                                           "text":  "打开地图，自由安排行动",
+                                           "action":  "open_map"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "harbor_02"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "interruptible",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  true,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "tavern_01",
+                       "type":  "剧情事件",
+                       "location":  "黑帆酒馆",
+                       "chapter":  "第二幕",
+                       "speaker":  "老乔",
+                       "title":  "最后的守灯人",
+                       "text":  "酒馆角落里，老乔用双手捂着一杯早已冷掉的酒。『林鸦查到了十三年前沉船的航海日志。灰帆号不是来运货的，他们在找沉船里的“潮心”。她把日志藏在灯塔钟室。』",
+                       "options":  [
+                                       {
+                                           "text":  "追问海底钟声",
+                                           "next":  "tavern_02"
+                                       },
+                                       {
+                                           "text":  "暂时离开，返回地图",
+                                           "action":  "open_map"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "square_01"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "interruptible",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "tavern_02",
+                       "type":  "剧情事件",
+                       "location":  "黑帆酒馆",
+                       "chapter":  "第二幕",
+                       "speaker":  "老乔",
+                       "title":  "钟声的代价",
+                       "text":  "『每响一次，雾就偷走一段记忆。盐蚀傀儡是那些忘了自己是谁的人。』老乔递给你一瓶提神药剂，嘱咐你在意识模糊时饮下。",
+                       "options":  [
+                                       {
+                                           "text":  "收下药剂并返回地图",
+                                           "item":  "提神药剂",
+                                           "action":  "open_map"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "tavern_01"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "interruptible",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "lighthouse_01",
+                       "type":  "剧情事件",
+                       "location":  "旧灯塔",
+                       "chapter":  "第二幕",
+                       "speaker":  "旁白",
+                       "title":  "熄灭的灯塔",
+                       "text":  "灯塔铁门从内部反锁。门框有新鲜撬痕，石阶上的海水却一路向上流。透过门缝，你看见地面散落着档案纸。必须在巡逻者回来前找到隐蔽入口。",
+                       "options":  [
+                                       {
+                                           "text":  "进行洞察检定（D20，难度13）",
+                                           "action":  "d20_check",
+                                           "stat":  "洞察",
+                                           "difficulty":  13,
+                                           "success":  "check_success",
+                                           "failure":  "check_failure"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "square_01"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "check_success",
+                       "type":  "剧情事件",
+                       "location":  "旧灯塔",
+                       "chapter":  "第二幕",
+                       "speaker":  "旁白",
+                       "title":  "检定成功",
+                       "text":  "你发现排水口的铁栅栏没有锈迹，显然经常开启。循着墙上的十三道刻痕按下暗扣，一条通往地下钟室的窄梯显露出来。你避开了门后的陷阱，并抢得先机。",
+                       "options":  [
+                                       {
+                                           "text":  "进入地下钟室",
+                                           "flag":  "check_success",
+                                           "next":  "archive_01"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "lighthouse_01"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "check_failure",
+                       "type":  "剧情事件",
+                       "location":  "旧灯塔",
+                       "chapter":  "第二幕",
+                       "speaker":  "旁白",
+                       "title":  "检定失败",
+                       "text":  "你没能找到暗门，只得撞开正门。悬在门后的玻璃瓶碎裂，刺鼻盐雾灼伤肺部。警铃随即响起；你找到了通往钟室的楼梯，但敌人已经有所准备。",
+                       "options":  [
+                                       {
+                                           "text":  "忍住疼痛继续前进",
+                                           "damage":  2,
+                                           "next":  "archive_01"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "lighthouse_01"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "archive_01",
+                       "type":  "剧情事件",
+                       "location":  "地下钟室",
+                       "chapter":  "第三幕",
+                       "speaker":  "林鸦",
+                       "title":  "钟室囚徒",
+                       "text":  "地下钟室中央悬着一口布满藤壶的铜钟。林鸦被锁在档案柜旁，神志尚且清醒。『别敲钟！赫伯特想用潮心唤醒沉船上的船员。他不知道那些人早已不是人了。』阴影中传来拖动铁链的声音。",
+                       "options":  [
+                                       {
+                                           "text":  "先解开林鸦的锁链",
+                                           "flag":  "freed_linya",
+                                           "next":  "archive_02"
+                                       },
+                                       {
+                                           "text":  "先检查铜钟",
+                                           "next":  "archive_02"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "check_success",
+                                             "check_failure"
+                                         ],
+                       "prerequisite_mode":  "any",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "archive_02",
+                       "type":  "剧情事件",
+                       "location":  "地下钟室",
+                       "chapter":  "第三幕",
+                       "speaker":  "赫伯特船长",
+                       "title":  "船长的交易",
+                       "text":  "赫伯特从阴影中走出，手里托着搏动的蓝色结晶。『十三年前，是港务会把我们的船送进风暴。我只想让船员回来。把怀表交给我，我放你们离开。』他身后的盐蚀傀儡缓缓抬起锚钩。",
+                       "options":  [
+                                       {
+                                           "text":  "拒绝交易，准备战斗",
+                                           "action":  "start_battle"
+                                       },
+                                       {
+                                           "text":  "假意交出怀表，伺机出手",
+                                           "flag":  "battle_advantage",
+                                           "action":  "start_battle"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "archive_01"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "after_battle",
+                       "type":  "剧情事件",
+                       "location":  "地下钟室",
+                       "chapter":  "终幕",
+                       "speaker":  "旁白",
+                       "title":  "寂静之后",
+                       "text":  "盐蚀傀儡崩解成潮湿的盐堆。赫伯特逃入雾中，潮心则滚落在铜钟脚下。钟室开始震动，退潮已至；你必须决定如何处理这件危险遗物。",
+                       "options":  [
+                                       {
+                                           "text":  "摧毁潮心，终止钟声",
+                                           "flag":  "destroy_heart",
+                                           "next":  "ending_good"
+                                       },
+                                       {
+                                           "text":  "封存潮心，带回调查所",
+                                           "flag":  "keep_heart",
+                                           "next":  "ending_secret"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "archive_02"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "ending_good",
+                       "type":  "剧情事件",
+                       "location":  "雾港码头",
+                       "chapter":  "尾声",
+                       "speaker":  "林鸦",
+                       "title":  "雾散之时",
+                       "text":  "潮心在锤击下裂成黯淡碎片。海底最后一次传来钟鸣，却没有夺走任何记忆。晨光穿透雾层，失魂的港民陆续醒来。林鸦把航海日志交给你：港务会的旧罪仍待清算，但今夜至少没有新的名字被海水抹去。",
+                       "options":  [
+                                       {
+                                           "text":  "查看本局总结",
+                                           "action":  "summary"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "after_battle"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  true,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "ending_secret",
+                       "type":  "剧情事件",
+                       "location":  "渡船",
+                       "chapter":  "尾声",
+                       "speaker":  "林鸦",
+                       "title":  "未完的回声",
+                       "text":  "你用档案箱封住潮心。雾气随之退去，但回程渡船上，你发现自己的影子总比动作慢半拍。林鸦警告：潮心记住了你的名字。它或许是证据，也可能是下一场灾难的开端。",
+                       "options":  [
+                                       {
+                                           "text":  "查看本局总结",
+                                           "action":  "summary"
+                                       }
+                                   ],
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "after_battle"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "continuous",
+                       "repeatable":  false,
+                       "action_cost":  1,
+                       "ends_continuous":  true,
+                       "music":  ""
+                   },
+                   {
+                       "id":  "repeat_forage",
+                       "type":  "可重复事件",
+                       "location":  "雾港广场",
+                       "chapter":  "日常行动",
+                       "speaker":  "旁白",
+                       "title":  "雾岸采集",
+                       "text":  "退潮后的石缝里散落着可食用的海菜与贝类。仔细辨认可获得旅行口粮，但浓雾会掩盖危险的潮沟。",
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "square_01"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "interruptible",
+                       "repeatable":  true,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "options":  [
+                                       {
+                                           "text":  "进行洞察检定并采集",
+                                           "action":  "resource_check",
+                                           "stat":  "洞察",
+                                           "difficulty":  11,
+                                           "resource":  "item.ration"
+                                       },
+                                       {
+                                           "text":  "暂时离开",
+                                           "action":  "open_map"
+                                       }
+                                   ],
+                       "music":  ""
+                   },
+                   {
+                       "id":  "repeat_salvage",
+                       "type":  "可重复事件",
+                       "location":  "雾港码头",
+                       "chapter":  "日常行动",
+                       "speaker":  "旁白",
+                       "title":  "打捞残骸",
+                       "text":  "潮水带来破碎船板与生锈零件。搬开沉重残骸需要体力，收获可以换钱，也可能用于后续制作。",
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "harbor_02"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "interruptible",
+                       "repeatable":  true,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "options":  [
+                                       {
+                                           "text":  "进行体魄检定并打捞",
+                                           "action":  "resource_check",
+                                           "stat":  "体魄",
+                                           "difficulty":  12,
+                                           "resource":  "item.salvage"
+                                       },
+                                       {
+                                           "text":  "暂时离开",
+                                           "action":  "open_map"
+                                       }
+                                   ],
+                       "music":  ""
+                   },
+                   {
+                       "id":  "repeat_herb",
+                       "type":  "可重复事件",
+                       "location":  "旧灯塔",
+                       "chapter":  "日常行动",
+                       "speaker":  "旁白",
+                       "title":  "采集雾生药草",
+                       "text":  "灯塔背风坡生长着只在浓雾中舒展的药草。分辨有毒变种需要足够的学识。",
+                       "locked":  true,
+                       "prerequisites":  [
+                                             "square_01"
+                                         ],
+                       "prerequisite_mode":  "all",
+                       "flow_mode":  "interruptible",
+                       "repeatable":  true,
+                       "action_cost":  1,
+                       "ends_continuous":  false,
+                       "options":  [
+                                       {
+                                           "text":  "进行学识检定并采集",
+                                           "action":  "resource_check",
+                                           "stat":  "学识",
+                                           "difficulty":  13,
+                                           "resource":  "item.herb"
+                                       },
+                                       {
+                                           "text":  "暂时离开",
+                                           "action":  "open_map"
+                                       }
+                                   ],
+                       "music":  ""
+                   }
+               ]
+}
