@@ -2,10 +2,15 @@ extends Node
 
 const SAVE_PATH := "user://mist_harbor_save.json"
 const CONTENT_PATH := "user://mist_harbor_custom_content.json"
+const SAVE_VERSION := 2
 const EQUIPMENT_SLOTS := ["头盔", "盔甲", "武器", "臂甲", "鞋子", "饰品"]
 const LEGACY_ITEM_IDS := {
 	"旧港通行证": "item.pass", "提神药剂": "item.tonic", "裂纹透镜": "item.lens",
 	"银灰盐块": "item.silver_salt", "林鸦的怀表": "quest.linya_watch"
+}
+const CRAFT_RECIPES := {
+	"item.tonic": {"name": "调配提神药剂", "cost": {"item.herb": 2}},
+	"item.ration": {"name": "整理旅行口粮", "cost": {"item.salvage": 1, "item.herb": 1}}
 }
 
 var player: Dictionary
@@ -29,17 +34,18 @@ func reset_run() -> void:
 		"max_hp_penalty": 0,
 		"equipment": {"头盔": null, "盔甲": "equip.archive_coat", "武器": "equip.signal_pistol", "臂甲": null, "鞋子": null, "饰品": null},
 		"inventory": {"item.pass": 1, "item.tonic": 1, "item.ration": 2, "equip.watch_cap": 1},
+		"coins": 0,
 		"training_growth": 3,
 		"training_combat": 3
 	}
-	world = {"scene": "intro_01", "location": "渡船", "visited": [], "flags": {}, "minutes": 0, "log": [], "battle_won": false, "date":{"year":1,"month":1,"day":1}, "action_points":3, "max_action_points":3, "active_continuous":"", "repeat_counts":{}}
+	world = {"scene": "intro_01", "location": "渡船", "visited": [], "flags": {}, "minutes": 0, "log": [], "battle_won": false, "date":{"year":1,"month":1,"day":1}, "action_points":3, "max_action_points":3, "active_continuous":"", "repeat_counts":{}, "quests": {}, "relations": {"林鸦": 0, "老乔": 0, "港民": 0}, "random_seed": 137, "random_cooldowns": {}}
 	battle = {}
 
 func save_game() -> bool:
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
 		return false
-	file.store_string(JSON.stringify({"version": 1, "player": player, "world": world, "battle": battle}, "  "))
+	file.store_string(JSON.stringify({"version": SAVE_VERSION, "player": player, "world": world, "battle": battle}, "  "))
 	return true
 
 func load_game() -> bool:
@@ -51,27 +57,7 @@ func load_game() -> bool:
 	player = parsed.player
 	world = parsed.world
 	battle = parsed.get("battle", {})
-	_migrate_player_inventory()
-	if not world.has("visited"):
-		world.visited = []
-	if not world.has("location"):
-		world.location = "渡船"
-	if not world.has("date"):
-		world.date = {"year":1,"month":1,"day":1}
-	if not world.has("action_points"):
-		world.action_points = 3
-	if not world.has("max_action_points"):
-		world.max_action_points = 3
-	if not world.has("active_continuous"):
-		world.active_continuous = ""
-	if not world.has("repeat_counts"):
-		world.repeat_counts = {}
-	if not player.has("satiety"):
-		player.satiety = 80
-	if not player.has("max_satiety"):
-		player.max_satiety = 100
-	if not player.has("max_hp_penalty"):
-		player.max_hp_penalty = 0
+	_migrate_save(int(parsed.get("version", 1)))
 	return true
 
 func has_save() -> bool:
@@ -115,6 +101,76 @@ func _migrate_player_inventory() -> void:
 		if not player.equipment.has(slot):
 			player.equipment[slot] = null
 	player.erase("items")
+
+func _migrate_save(version: int) -> void:
+	_migrate_player_inventory()
+	if not world.has("visited"):
+		world.visited = []
+	if not world.has("location"):
+		world.location = "渡船"
+	if not world.has("date"):
+		world.date = {"year":1,"month":1,"day":1}
+	if not world.has("action_points"):
+		world.action_points = 3
+	if not world.has("max_action_points"):
+		world.max_action_points = 3
+	if not world.has("active_continuous"):
+		world.active_continuous = ""
+	if not world.has("repeat_counts"):
+		world.repeat_counts = {}
+	if not player.has("satiety"):
+		player.satiety = 80
+	if not player.has("max_satiety"):
+		player.max_satiety = 100
+	if not player.has("max_hp_penalty"):
+		player.max_hp_penalty = 0
+	if version < 2:
+		_migrate_v1_to_v2()
+	_ensure_world_systems()
+
+func _migrate_v1_to_v2() -> void:
+	if not player.has("coins"):
+		player.coins = 0
+
+func _ensure_world_systems() -> void:
+	if not world.has("quests") or not world.quests is Dictionary:
+		world.quests = {}
+	if not world.has("relations") or not world.relations is Dictionary:
+		world.relations = {"林鸦": 0, "老乔": 0, "港民": 0}
+	for name in ["林鸦", "老乔", "港民"]:
+		if not world.relations.has(name):
+			world.relations[name] = 0
+	if not world.has("random_seed"):
+		world.random_seed = 137
+	if not world.has("random_cooldowns") or not world.random_cooldowns is Dictionary:
+		world.random_cooldowns = {}
+	if not player.has("coins"):
+		player.coins = 0
+
+func set_quest(quest_id: String, title: String, status: String, clue: String = "") -> void:
+	world.quests[quest_id] = {"title": title, "status": status, "clue": clue}
+
+func adjust_relation(name: String, delta: int) -> void:
+	world.relations[name] = int(world.relations.get(name, 0)) + delta
+
+func sell_item(item_id: String, quantity: int, price: int) -> bool:
+	if not remove_item(item_id, quantity):
+		return false
+	player.coins = int(player.coins) + quantity * price
+	return true
+
+func craft_item(item_id: String) -> bool:
+	if not CRAFT_RECIPES.has(item_id):
+		return false
+	var recipe: Dictionary = CRAFT_RECIPES[item_id]
+	var cost: Dictionary = recipe.get("cost", {})
+	for ingredient in cost:
+		if not has_item(str(ingredient), int(cost[ingredient])):
+			return false
+	for ingredient in cost:
+		remove_item(str(ingredient), int(cost[ingredient]))
+	add_item(item_id)
+	return true
 
 func resolve_item_id(item_ref: String) -> String:
 	return LEGACY_ITEM_IDS.get(item_ref, item_ref)

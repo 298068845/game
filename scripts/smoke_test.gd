@@ -1,5 +1,10 @@
 extends SceneTree
 
+const ContentSchema = preload("res://scripts/content_schema.gd")
+const ContentLibrary = preload("res://scripts/content_library.gd")
+const EventActionSchema = preload("res://scripts/event_action_schema.gd")
+const ScenarioPackage = preload("res://scripts/scenario_package.gd")
+
 func _init() -> void:
 	for asset_path in ["res://assets/defaults/default_map.png", "res://assets/defaults/default_enemy.png", "res://assets/defaults/default_item.png"]:
 		assert(ResourceLoader.exists(asset_path), "缺少默认图片：" + asset_path)
@@ -7,6 +12,21 @@ func _init() -> void:
 	var database = JSON.parse_string(FileAccess.get_file_as_string("res://data/database.json"))
 	assert(scenario is Dictionary)
 	assert(database is Dictionary)
+	var package := ScenarioPackage.make_package(scenario, database, ContentSchema.empty_custom_content())
+	var validation := ContentSchema.validate_package(package)
+	assert(validation.ok, "内容 schema 校验失败：" + "\n".join(validation.errors))
+	assert(EventActionSchema.has_action("d20_check"))
+	assert(EventActionSchema.has_action("resource_check"))
+	var package_path := "user://scenario_package_smoke.json"
+	var export_result := ScenarioPackage.export_to_path(package_path, scenario, database, ContentSchema.empty_custom_content())
+	assert(export_result.ok, "剧本包导出失败：" + "\n".join(export_result.errors))
+	var import_result := ScenarioPackage.import_from_path(package_path)
+	assert(import_result.ok, "剧本包导入失败：" + "\n".join(import_result.errors))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(package_path))
+	var content_library := ContentLibrary.new()
+	content_library.load_from_resources("res://data/scenario.json", "res://data/database.json", ContentSchema.empty_custom_content())
+	assert(content_library.has_event("intro_01"))
+	assert(content_library.all_equipment().size() >= 6)
 	assert(scenario.events.size() >= 19)
 	assert(database.characters.size() >= 3)
 	assert(database.enemies.size() >= 1)

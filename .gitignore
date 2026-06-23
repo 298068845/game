@@ -1,4 +1,6 @@
 .godot/
+.tmp/
+godot_path.local.txt
 prototype*.png
 prototype.wav
 *_preview*.png

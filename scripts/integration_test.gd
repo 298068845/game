@@ -14,6 +14,7 @@ func _initialize() -> void:
 	await process_frame
 	assert(state.world.scene == "intro_01")
 	assert(state.world.location == "渡船")
+	assert(state.world.quests.has("find_linya"))
 	app.show_event("intro_02")
 	await process_frame
 	assert(state.world.active_continuous == "intro_01")
@@ -31,6 +32,12 @@ func _initialize() -> void:
 	await process_frame
 	assert(app._location_unlocked("雾港码头"))
 	assert(app._event_unlocked("repeat_forage"))
+	assert(app.map_marker_count > 0)
+	assert(app._map_marker_icon({"repeatable":true}) == "↻")
+	assert(app._map_marker_icon({"type":"随机事件"}) == "✦")
+	assert(app._map_marker_icon({"type":"剧情事件"}) == "◆")
+	var service_ids: Array = app._map_service_markers().map(func(service): return service.get("id", ""))
+	assert(service_ids.has("inn") and service_ids.has("shop"))
 	var ration_before: int = int(state.player.inventory.get("item.ration", 0))
 	app._start_event("repeat_forage")
 	await process_frame
@@ -78,8 +85,20 @@ func _initialize() -> void:
 	assert(app._event_unlocked("archive_01"))
 	app.show_growth()
 	await process_frame
+	app.show_inn()
+	await process_frame
+	assert(app.current_view == "inn")
+	app.show_shop()
+	await process_frame
+	assert(app.current_view == "shop")
 	app.show_inventory()
 	await process_frame
+	state.add_item("item.herb", 2)
+	assert(state.craft_item("item.tonic"))
+	state.add_item("item.silver_salt", 1)
+	var coins_before: int = int(state.player.coins)
+	assert(state.sell_item("item.silver_salt", 1, 5))
+	assert(int(state.player.coins) == coins_before + 5)
 	assert(state.has_item("equip.watch_cap"))
 	var defense_before: int = app._effective_combat("防御")
 	app._equip_from_bag("equip.watch_cap", "头盔")
@@ -88,6 +107,9 @@ func _initialize() -> void:
 	assert(app._effective_combat("防御") == defense_before + 1)
 	app.show_tools()
 	await process_frame
+	assert(app.editor_event_id != null)
+	app._new_custom_event()
+	assert(app.editor_event_id.editable and app.editor_event_id.text == "")
 	assert(app.editor_location != null)
 	assert(app.entity_kind != null and app.entity_stat_inputs.size() == 10)
 	assert(app.item_category != null and app.item_bonus_inputs.size() == 10)
@@ -148,6 +170,9 @@ func _initialize() -> void:
 	app.show_battle(true)
 	await process_frame
 	assert(state.battle.active)
+	app._battle_action("quick")
+	await process_frame
+	assert(state.battle.has("enemy_intent"))
 	if not state.world.visited.has("archive_02"):
 		state.world.visited.append("archive_02")
 	# 使用确定性高属性验证完整战斗结算路径。
