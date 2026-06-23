@@ -1,0 +1,36 @@
+{
+  "format": "mist_harbor_event_text_import",
+  "version": 1,
+  "notes": [
+    "id/title/text 是必填文案字段。",
+    "location 需要对应大地图素材页配置的事件发生点。",
+    "background_image/music 可先留空；留空导入后会自动标记为 draft，暂不可使用。",
+    "补齐素材后，在事件编辑器取消“事件数据未完善，暂不可使用”即可启用。"
+  ],
+  "events": [
+    {
+      "id": "custom.story_001",
+      "title": "示例事件标题",
+      "chapter": "第一章",
+      "speaker": "旁白",
+      "type": "剧情事件",
+      "location": "雾港码头",
+      "background_image": "",
+      "music": "",
+      "locked": false,
+      "prerequisites": [],
+      "prerequisite_mode": "all",
+      "flow_mode": "interruptible",
+      "repeatable": false,
+      "action_cost": 1,
+      "ends_continuous": false,
+      "text": "这里填写剧情正文。",
+      "options": [
+        {
+          "text": "返回地图",
+          "action": "open_map"
+        }
+      ]
+    }
+  ]
+}

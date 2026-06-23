@@ -17,7 +17,8 @@ static func empty_custom_content() -> Dictionary:
 		"equipment": [],
 		"items": [],
 		"map_background": "",
-		"map_music": ""
+		"map_music": "",
+		"map_points": []
 	}
 
 static func normalize_custom_content(source: Dictionary) -> Dictionary:
@@ -30,6 +31,17 @@ static func normalize_custom_content(source: Dictionary) -> Dictionary:
 		content.map_background = ""
 	if not content.has("map_music") or not content.map_music is String:
 		content.map_music = ""
+	if not content.has("map_points") or not content.map_points is Array:
+		content.map_points = []
+	var normalized_points: Array = []
+	for point in content.map_points:
+		if not point is Dictionary:
+			continue
+		var name := str(point.get("name", "")).strip_edges()
+		if name.is_empty():
+			continue
+		normalized_points.append({"name": name, "x": int(point.get("x", 480)), "y": int(point.get("y", 150))})
+	content.map_points = normalized_points
 	return content
 
 static func normalize_event(source: Dictionary) -> Dictionary:
@@ -56,6 +68,8 @@ static func normalize_event(source: Dictionary) -> Dictionary:
 	event.ends_continuous = bool(event.get("ends_continuous", false))
 	event.background_image = str(event.get("background_image", ""))
 	event.music = str(event.get("music", ""))
+	event.draft = bool(event.get("draft", false))
+	event.import_notes = str(event.get("import_notes", ""))
 	return event
 
 static func validate_package(package: Dictionary) -> Dictionary:

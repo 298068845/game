@@ -69,7 +69,7 @@ func add_log(text: String) -> void:
 		world.log.pop_front()
 
 func load_custom_content() -> void:
-	custom_content = {"events": [], "characters": [], "enemies": [], "equipment": [], "items": [], "map_background": "", "map_music": ""}
+	custom_content = {"events": [], "characters": [], "enemies": [], "equipment": [], "items": [], "map_background": "", "map_music": "", "map_points": []}
 	if FileAccess.file_exists(CONTENT_PATH):
 		var parsed = JSON.parse_string(FileAccess.get_file_as_string(CONTENT_PATH))
 		if parsed is Dictionary:
@@ -81,6 +81,8 @@ func load_custom_content() -> void:
 		custom_content.map_background = ""
 	if not custom_content.has("map_music"):
 		custom_content.map_music = ""
+	if not custom_content.has("map_points") or not custom_content.map_points is Array:
+		custom_content.map_points = []
 
 func save_custom_content() -> bool:
 	var file := FileAccess.open(CONTENT_PATH, FileAccess.WRITE)

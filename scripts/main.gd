@@ -17,6 +17,9 @@ var time_status_label: Label
 var title_label: Label
 var body_label: RichTextLabel
 var choices_box: VBoxContainer
+var event_text_pages: Array[String] = []
+var event_text_page_index := 0
+var event_text_options: Array = []
 var hp_label: Label
 var inventory_label: Label
 var battle_log: RichTextLabel
@@ -32,6 +35,7 @@ var editor_prerequisites: LineEdit
 var editor_prerequisite_mode: OptionButton
 var editor_flow_mode: OptionButton
 var editor_repeatable: CheckBox
+var editor_draft: CheckBox
 var editor_action_cost: SpinBox
 var editor_ends_continuous: CheckBox
 var editor_background_path: LineEdit
@@ -84,6 +88,10 @@ var tools_tabs: TabContainer
 var map_background_path: LineEdit
 var map_background_preview: TextureRect
 var map_music_path: LineEdit
+var map_point_list: ItemList
+var map_point_name: LineEdit
+var map_point_position_label: Label
+var map_point_picker_canvas: Control
 var image_dialog: FileDialog
 var pending_image_target := ""
 var audio_dialog: FileDialog
@@ -97,6 +105,8 @@ var preview_music_player: AudioStreamPlayer
 var current_map_music_path := ""
 var current_event_music_path := ""
 var map_marker_count := 0
+var selected_map_point_index := -1
+var draft_map_point_position := Vector2(480, 150)
 
 var bg := Color("101724")
 var panel := Color("182235")
@@ -254,6 +264,7 @@ func _set_image_target(target: String, path: String) -> void:
 		"map_background":
 			map_background_path.text = path
 			_set_preview(map_background_preview, path, DEFAULT_MAP_IMAGE)
+			_refresh_map_point_picker_texture()
 
 func _clear_image_target(target: String) -> void:
 	_set_image_target(target, "")
@@ -396,6 +407,22 @@ func _request_package_import() -> void:
 	package_dialog.current_file = ""
 	package_dialog.popup_centered_ratio(0.72)
 
+func _request_event_text_import() -> void:
+	_ensure_package_dialog()
+	pending_package_action = "import_events"
+	package_dialog.title = "导入事件文案数据"
+	package_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	package_dialog.current_file = ""
+	package_dialog.popup_centered_ratio(0.72)
+
+func _request_event_import_template_export() -> void:
+	_ensure_package_dialog()
+	pending_package_action = "export_event_template"
+	package_dialog.title = "导出事件导入模板"
+	package_dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
+	package_dialog.current_file = "event_import_template.json"
+	package_dialog.popup_centered_ratio(0.72)
+
 func _on_package_file_selected(path: String) -> void:
 	if pending_package_action == "export":
 		var result := ScenarioPackage.export_to_path(path, scenario, database, GameState.custom_content)
@@ -403,6 +430,11 @@ func _on_package_file_selected(path: String) -> void:
 			_toast("剧本包已导出")
 		else:
 			_toast("导出失败：" + _first_error(result))
+	elif pending_package_action == "export_event_template":
+		if _export_event_import_template(path):
+			_toast("事件导入模板已导出")
+		else:
+			_toast("模板导出失败")
 	elif pending_package_action == "import":
 		var result := ScenarioPackage.import_from_path(path)
 		if not result.ok:
@@ -415,11 +447,178 @@ func _on_package_file_selected(path: String) -> void:
 		_refresh_content_validation()
 		_toast("剧本包已导入")
 		show_tools()
+	elif pending_package_action == "import_events":
+		var result := _import_event_text_data(path)
+		if not result.ok:
+			_toast("事件导入失败：" + _first_error(result))
+			return
+		_reload_event_registry()
+		GameState.save_custom_content()
+		_refresh_content_validation()
+		_toast("事件导入完成：新增%d，更新%d，未完善%d" % [int(result.added), int(result.updated), int(result.draft)])
+		show_tools()
 	pending_package_action = ""
 
 func _first_error(result: Dictionary) -> String:
 	var errors: Array = result.get("errors", [])
 	return str(errors[0]) if not errors.is_empty() else "未知错误"
+
+func _export_event_import_template(path: String) -> bool:
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify(_event_import_template(), "  "))
+	return true
+
+func _event_import_template() -> Dictionary:
+	return {
+		"format": "mist_harbor_event_text_import",
+		"version": 1,
+		"notes": [
+			"id/title/text 是必填文案字段。",
+			"location 需要对应大地图素材页配置的事件发生点。",
+			"background_image/music 可先留空；留空导入后会自动标记为 draft，暂不可使用。",
+			"补齐素材后，在事件编辑器取消“事件数据未完善，暂不可使用”即可启用。"
+		],
+		"events": [
+			{
+				"id": "custom.story_001",
+				"title": "示例事件标题",
+				"chapter": "第一章",
+				"speaker": "旁白",
+				"type": "剧情事件",
+				"location": "雾港码头",
+				"background_image": "",
+				"music": "",
+				"locked": false,
+				"prerequisites": [],
+				"prerequisite_mode": "all",
+				"flow_mode": "interruptible",
+				"repeatable": false,
+				"action_cost": 1,
+				"ends_continuous": false,
+				"text": "这里填写剧情正文。",
+				"options": [
+					{"text": "返回地图", "action": "open_map"}
+				]
+			}
+		]
+	}
+
+func _import_event_text_data(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {"ok": false, "errors": ["文件不存在：%s" % path]}
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
+	var raw_events: Array = []
+	if parsed is Array:
+		raw_events = parsed
+	elif parsed is Dictionary:
+		var event_value = parsed.get("events", [])
+		if event_value is Array:
+			raw_events = event_value
+		else:
+			return {"ok": false, "errors": ["events 必须是数组"]}
+	else:
+		return {"ok": false, "errors": ["事件文案文件必须是 JSON 对象或数组"]}
+	if raw_events.is_empty():
+		return {"ok": false, "errors": ["没有可导入的事件"]}
+	var added := 0
+	var updated := 0
+	var draft_count := 0
+	var errors: Array[String] = []
+	for index in range(raw_events.size()):
+		if not raw_events[index] is Dictionary:
+			errors.append("事件 #%d 必须是对象" % index)
+			continue
+		var imported := _normalize_imported_event(raw_events[index], index, errors)
+		if imported.is_empty():
+			continue
+		if bool(imported.get("draft", false)):
+			draft_count += 1
+		var replaced := false
+		for i in range(GameState.custom_content.events.size()):
+			if str(GameState.custom_content.events[i].get("id", "")) == str(imported.id):
+				GameState.custom_content.events[i] = imported
+				replaced = true
+				updated += 1
+				break
+		if not replaced:
+			GameState.custom_content.events.append(imported)
+			added += 1
+	if not errors.is_empty():
+		return {"ok": false, "errors": errors}
+	return {"ok": true, "errors": [], "added": added, "updated": updated, "draft": draft_count}
+
+func _normalize_imported_event(source: Dictionary, index: int, errors: Array[String]) -> Dictionary:
+	var event_id := str(source.get("id", "")).strip_edges()
+	if event_id.is_empty():
+		errors.append("事件 #%d 缺少 id" % index)
+		return {}
+	if not _valid_event_id(event_id):
+		errors.append("事件 id 非法：%s" % event_id)
+		return {}
+	var title := str(source.get("title", source.get("name", ""))).strip_edges()
+	if title.is_empty():
+		errors.append("事件缺少 title/name：%s" % event_id)
+		return {}
+	var text := str(source.get("text", "")).strip_edges()
+	if text.is_empty():
+		errors.append("事件缺少 text：%s" % event_id)
+		return {}
+	var options = source.get("options", [{"text":"返回地图", "action":"open_map"}])
+	if not options is Array or options.is_empty():
+		options = [{"text":"返回地图", "action":"open_map"}]
+	var entry := {
+		"id": event_id,
+		"name": title,
+		"title": title,
+		"chapter": str(source.get("chapter", "导入事件")),
+		"speaker": str(source.get("speaker", "旁白")),
+		"type": str(source.get("type", "剧情事件")),
+		"location": str(source.get("location", "")).strip_edges(),
+		"background_image": str(source.get("background_image", "")),
+		"music": str(source.get("music", "")),
+		"locked": bool(source.get("locked", false)),
+		"prerequisites": _string_list_from_value(source.get("prerequisites", [])),
+		"prerequisite_mode": str(source.get("prerequisite_mode", "all")),
+		"flow_mode": str(source.get("flow_mode", "interruptible")),
+		"repeatable": bool(source.get("repeatable", false)),
+		"action_cost": int(source.get("action_cost", 1)),
+		"ends_continuous": bool(source.get("ends_continuous", false)),
+		"text": text,
+		"options": options
+	}
+	var notes := _import_event_incomplete_notes(entry)
+	var source_draft := bool(source.get("draft", false))
+	entry.draft = source_draft or not notes.is_empty()
+	entry.import_notes = str(source.get("import_notes", notes)).strip_edges()
+	return ContentSchema.normalize_event(entry)
+
+func _import_event_incomplete_notes(event: Dictionary) -> String:
+	var missing: Array[String] = []
+	if str(event.get("location", "")).strip_edges().is_empty():
+		missing.append("发生点")
+	if str(event.get("background_image", "")).strip_edges().is_empty():
+		missing.append("背景图")
+	if str(event.get("music", "")).strip_edges().is_empty():
+		missing.append("背景音乐")
+	if not _map_point_names().has(str(event.get("location", ""))):
+		missing.append("发生点未配置")
+	return "缺少" + "、".join(missing) if not missing.is_empty() else ""
+
+func _string_list_from_value(value) -> Array[String]:
+	var result: Array[String] = []
+	if value is String:
+		for raw in str(value).split(","):
+			var text := raw.strip_edges()
+			if not text.is_empty() and not result.has(text):
+				result.append(text)
+	elif value is Array:
+		for entry in value:
+			var text := str(entry).strip_edges()
+			if not text.is_empty() and not result.has(text):
+				result.append(text)
+	return result
 
 func _ensure_map_music() -> void:
 	var path := str(GameState.custom_content.get("map_music", ""))
@@ -890,81 +1089,69 @@ func show_event(event_id: String) -> void:
 	_update_time_status()
 	GameState.add_log("进入事件：" + event.title)
 	_clear_view()
-	var layout := HBoxContainer.new()
-	layout.add_theme_constant_override("separation", 22)
-	content_root.add_child(layout)
-	var story := _panel_container()
-	story.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	layout.add_child(story)
-	var story_box := VBoxContainer.new()
-	story_box.add_theme_constant_override("separation", 16)
-	story.add_child(story_box)
+	var root := VBoxContainer.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.add_theme_constant_override("separation", 0)
+	content_root.add_child(root)
+	var stage := Control.new()
+	stage.clip_contents = true
+	stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stage.size_flags_stretch_ratio = 2.0
+	root.add_child(stage)
+	var background_view := TextureRect.new()
+	background_view.texture = _event_background_texture(event)
+	background_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	stage.add_child(background_view)
+	var shade := ColorRect.new()
+	shade.color = Color(0.03, 0.06, 0.1, 0.22)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	stage.add_child(shade)
 	var meta := Label.new()
-	meta.text = "%s  ·  %s  ·  %s" % [event.chapter, event.type, event.get("location", "未知地点")]
+	meta.text = "%s · %s · %s" % [event.chapter, event.type, event.get("location", "未知地点")]
+	meta.position = Vector2(28, 22)
 	meta.add_theme_color_override("font_color", accent if event.type == "剧情事件" else gold)
-	meta.add_theme_font_size_override("font_size", 15)
-	story_box.add_child(meta)
-	var background_texture := _texture_from_path(event.get("background_image", ""))
-	if background_texture != null:
-		var background_view := TextureRect.new()
-		background_view.texture = background_texture
-		background_view.custom_minimum_size.y = 165
-		background_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		background_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		story_box.add_child(background_view)
-	title_label = _heading(event.title, 32)
-	story_box.add_child(title_label)
-	story_box.add_child(_muted(event.speaker))
-	var dialogue_row := HBoxContainer.new()
-	dialogue_row.add_theme_constant_override("separation", 14)
-	story_box.add_child(dialogue_row)
-	var speaker_card := _speaker_portrait_card(event)
-	if speaker_card != null:
-		dialogue_row.add_child(speaker_card)
+	meta.add_theme_font_size_override("font_size", 17)
+	stage.add_child(meta)
+	var title := _heading(event.title, 34)
+	title.position = Vector2(28, 52)
+	stage.add_child(title)
+	_add_event_portraits(stage, event)
+	var dialogue_panel := _panel_container(Color(0.08, 0.12, 0.18, 0.94))
+	dialogue_panel.custom_minimum_size.y = 235
+	dialogue_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dialogue_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	dialogue_panel.size_flags_stretch_ratio = 1.0
+	dialogue_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	dialogue_panel.gui_input.connect(_on_event_text_panel_input)
+	root.add_child(dialogue_panel)
+	var dialogue_box := VBoxContainer.new()
+	dialogue_box.add_theme_constant_override("separation", 8)
+	dialogue_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	dialogue_panel.add_child(dialogue_box)
+	var speaker_line := _muted(_event_speaker_line(event))
+	speaker_line.add_theme_font_size_override("font_size", 16)
+	dialogue_box.add_child(speaker_line)
 	body_label = RichTextLabel.new()
 	body_label.bbcode_enabled = true
-	body_label.fit_content = true
-	body_label.custom_minimum_size.y = 120 if background_texture != null else 210
+	body_label.fit_content = false
+	body_label.scroll_active = false
+	body_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	body_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body_label.add_theme_font_size_override("normal_font_size", 19)
+	body_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body_label.add_theme_font_size_override("normal_font_size", 22)
 	body_label.add_theme_color_override("default_color", text_main)
-	body_label.text = event.text
-	dialogue_row.add_child(body_label)
-	choices_box = VBoxContainer.new()
-	choices_box.add_theme_constant_override("separation", 10)
-	story_box.add_child(choices_box)
-	for option in event.get("options", []):
-		var b := _button(option.text, true)
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.pressed.connect(func(): _choose(option))
-		choices_box.add_child(b)
-
-	var side := VBoxContainer.new()
-	side.custom_minimum_size.x = 330
-	side.add_theme_constant_override("separation", 14)
-	layout.add_child(side)
-	var status := _panel_container()
-	side.add_child(status)
-	var status_box := VBoxContainer.new()
-	status.add_child(status_box)
-	status_box.add_child(_heading("调查员状态", 20))
-	hp_label = _muted("生命：%d / %d" % [int(GameState.player.hp), _effective_combat("生命")])
-	status_box.add_child(hp_label)
-	status_box.add_child(_muted("%s\n行动：%d/%d  饱腹：%d/%d" % [GameState.date_text(), int(GameState.world.action_points), int(GameState.world.max_action_points), int(GameState.player.satiety), int(GameState.player.max_satiety)]))
-	status_box.add_child(_muted(_relations_line()))
-	status_box.add_child(_muted("洞察：%d  意志：%d  魅力：%d" % [_effective_check("洞察"), _effective_check("意志"), _effective_check("魅力")]))
-	inventory_label = _muted("背包：\n" + _inventory_lines(4))
-	status_box.add_child(inventory_label)
-	var save := _button("保存当前进度")
-	save.pressed.connect(func(): _toast("保存成功" if GameState.save_game() else "保存失败"))
-	status_box.add_child(save)
-	var journal := _panel_container()
-	side.add_child(journal)
-	var journal_box := VBoxContainer.new()
-	journal.add_child(journal_box)
-	journal_box.add_child(_heading("当前目标", 20))
-	journal_box.add_child(_muted(_objective_for(event_id)))
-	journal_box.add_child(_muted(_quest_lines()))
+	body_label.meta_clicked.connect(_on_event_text_meta_clicked)
+	dialogue_box.add_child(body_label)
+	var dialogue_bottom_padding := Control.new()
+	dialogue_bottom_padding.custom_minimum_size.y = 14
+	dialogue_box.add_child(dialogue_bottom_padding)
+	event_text_pages = _paginate_event_text(str(event.get("text", "")))
+	event_text_page_index = 0
+	event_text_options = event.get("options", [])
+	_render_event_text_page()
 
 func _update_world_systems_for_event(event_id: String, event: Dictionary) -> void:
 	match event_id:
@@ -989,6 +1176,110 @@ func _update_world_systems_for_event(event_id: String, event: Dictionary) -> voi
 func _relations_line() -> String:
 	var relations: Dictionary = GameState.world.get("relations", {})
 	return "关系：林鸦%+d  老乔%+d  港民%+d" % [int(relations.get("林鸦", 0)), int(relations.get("老乔", 0)), int(relations.get("港民", 0))]
+
+func _event_background_texture(event: Dictionary) -> Texture2D:
+	var event_background := _texture_from_path(str(event.get("background_image", "")))
+	if event_background != null:
+		return event_background
+	return _texture_from_path(str(GameState.custom_content.get("map_background", "")), DEFAULT_MAP_IMAGE)
+
+func _event_speaker_line(event: Dictionary) -> String:
+	var speaker := str(event.get("speaker", "旁白"))
+	if speaker.is_empty() or speaker == "旁白":
+		return "%s" % event.get("title", "")
+	return "%s  /  %s" % [speaker, str(_find_speaker_entity(speaker).get("role", event.get("speaker_role", "登场角色")))]
+
+func _add_event_portraits(stage: Control, event: Dictionary) -> void:
+	var player_texture := _player_portrait_texture()
+	if player_texture != null:
+		var player := _stage_portrait(player_texture, false)
+		player.anchor_left = 0.0
+		player.anchor_right = 0.0
+		player.offset_left = 28
+		player.offset_right = 308
+		stage.add_child(player)
+	var speaker := str(event.get("speaker", "旁白"))
+	if speaker.is_empty() or speaker == "旁白":
+		return
+	var entity := _find_speaker_entity(speaker)
+	var portrait_path := str(event.get("portrait_image", entity.get("portrait_image", "")))
+	var speaker_texture := _texture_from_path(portrait_path, DEFAULT_ENEMY_IMAGE)
+	if speaker_texture != null:
+		var other := _stage_portrait(speaker_texture, true)
+		other.anchor_left = 1.0
+		other.anchor_right = 1.0
+		other.offset_left = -308
+		other.offset_right = -28
+		stage.add_child(other)
+
+func _stage_portrait(texture: Texture2D, face_left: bool) -> TextureRect:
+	var portrait := TextureRect.new()
+	portrait.texture = texture
+	portrait.anchor_top = 0.08
+	portrait.anchor_bottom = 1.0
+	portrait.offset_top = 0
+	portrait.offset_bottom = -8
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.flip_h = face_left
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return portrait
+
+func _player_portrait_texture() -> Texture2D:
+	var portrait_path := str(GameState.player.get("portrait_image", ""))
+	return _texture_from_path(portrait_path, DEFAULT_ENEMY_IMAGE)
+
+func _paginate_event_text(text: String) -> Array[String]:
+	var trimmed := text.strip_edges()
+	if trimmed.is_empty():
+		return [""]
+	var pages: Array[String] = []
+	var current := ""
+	for paragraph in trimmed.split("\n"):
+		var part := str(paragraph).strip_edges()
+		if part.is_empty():
+			continue
+		if current.length() > 0 and current.length() + part.length() > 120:
+			pages.append(current)
+			current = part
+		else:
+			current = part if current.is_empty() else current + "\n" + part
+		while current.length() > 180:
+			pages.append(current.left(180))
+			current = current.substr(180)
+	if not current.is_empty():
+		pages.append(current)
+	return pages
+
+func _render_event_text_page() -> void:
+	if body_label == null:
+		return
+	var lines: Array[String] = []
+	if event_text_pages.is_empty():
+		lines.append("")
+	else:
+		var index := clampi(event_text_page_index, 0, event_text_pages.size() - 1)
+		lines.append(event_text_pages[index])
+		if index >= event_text_pages.size() - 1:
+			lines.append("")
+			for i in range(event_text_options.size()):
+				var option: Dictionary = event_text_options[i]
+				lines.append("[url=%d]› %s[/url]" % [i, option.get("text", "继续")])
+	body_label.text = "\n".join(lines)
+
+func _advance_event_text_page() -> void:
+	if event_text_page_index < event_text_pages.size() - 1:
+		event_text_page_index += 1
+		_render_event_text_page()
+
+func _on_event_text_panel_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		_advance_event_text_page()
+
+func _on_event_text_meta_clicked(meta) -> void:
+	var index := int(str(meta))
+	if index >= 0 and index < event_text_options.size():
+		_choose(event_text_options[index])
 
 func _speaker_portrait_card(event: Dictionary) -> PanelContainer:
 	var speaker := str(event.get("speaker", "旁白"))
@@ -1043,6 +1334,53 @@ func _objective_for(id: String) -> String:
 
 # --- 地图与地点事件触发 ---
 
+func _default_map_points() -> Array:
+	var points: Array = []
+	for location in LOCATIONS:
+		var position: Vector2 = MAP_MARKER_POSITIONS.get(location, Vector2(480, 150))
+		points.append({"name": location, "x": int(position.x), "y": int(position.y), "builtin": true})
+	return points
+
+func _custom_map_points() -> Array:
+	if not GameState.custom_content.has("map_points") or not GameState.custom_content.map_points is Array:
+		GameState.custom_content.map_points = []
+	return GameState.custom_content.map_points
+
+func _all_map_points() -> Array:
+	var by_name := {}
+	var result: Array = []
+	for point in _default_map_points():
+		var name := str(point.get("name", "")).strip_edges()
+		by_name[name] = result.size()
+		result.append(point.duplicate(true))
+	for custom_point in _custom_map_points():
+		if not custom_point is Dictionary:
+			continue
+		var name := str(custom_point.get("name", "")).strip_edges()
+		if name.is_empty():
+			continue
+		var normalized := {"name": name, "x": int(custom_point.get("x", 480)), "y": int(custom_point.get("y", 150)), "builtin": false}
+		if by_name.has(name):
+			result[int(by_name[name])] = normalized
+		else:
+			by_name[name] = result.size()
+			result.append(normalized)
+	return result
+
+func _map_point_names() -> Array[String]:
+	var names: Array[String] = []
+	for point in _all_map_points():
+		var name := str(point.get("name", "")).strip_edges()
+		if not name.is_empty() and not names.has(name):
+			names.append(name)
+	return names
+
+func _map_point_position(point_name: String) -> Vector2:
+	for point in _all_map_points():
+		if str(point.get("name", "")) == point_name:
+			return Vector2(float(point.get("x", 480)), float(point.get("y", 150)))
+	return MAP_MARKER_POSITIONS.get(point_name, Vector2(480, 150))
+
 func show_map() -> void:
 	if _block_if_continuous("打开地图"):
 		return
@@ -1061,46 +1399,6 @@ func show_map() -> void:
 	_build_map_event_canvas(root, map_texture)
 	root.add_child(_muted("%s · 行动点 %d/%d · 饱腹 %d/%d\n当前位置：%s。每次主动开始事件消耗行动点；行动点用尽后需要休息。" % [GameState.date_text(), int(GameState.world.action_points), int(GameState.world.max_action_points), int(GameState.player.satiety), int(GameState.player.max_satiety), GameState.world.get("location", "渡船")]))
 	root.add_child(_muted(_relations_line()))
-	root.add_child(_heading("地点", 21))
-	var grid := GridContainer.new()
-	grid.columns = 3
-	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 18)
-	grid.add_theme_constant_override("v_separation", 18)
-	root.add_child(grid)
-	var descriptions := {
-		"渡船": "调查开始之处，连接外界与雾港。",
-		"雾港码头": "巡夜人驻守的封锁区，潮池藏有异常线索。",
-		"雾港广场": "通往酒馆、灯塔和东侧泊位的交通中心。",
-		"黑帆酒馆": "守灯人老乔在这里等待愿意听真话的人。",
-		"旧灯塔": "档案与海底钟声的源头，铁门已从内部封闭。",
-		"地下钟室": "铜钟、潮心与失踪档案员所在的最终区域。"
-	}
-	for location in LOCATIONS:
-		var unlocked := _location_unlocked(location)
-		var card := _panel_container(panel_alt if unlocked else Color("151b25"))
-		card.custom_minimum_size = Vector2(360, 160)
-		grid.add_child(card)
-		var box := VBoxContainer.new()
-		box.add_theme_constant_override("separation", 9)
-		card.add_child(box)
-		var marker := "● 当前地点" if GameState.world.get("location", "") == location else ("◆ 已解锁" if unlocked else "▣ 未解锁")
-		var state_label := _muted(marker)
-		state_label.add_theme_color_override("font_color", accent if unlocked else text_dim.darkened(0.25))
-		box.add_child(state_label)
-		box.add_child(_heading(location, 22))
-		var description := _muted(descriptions[location])
-		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		box.add_child(description)
-		var event_count := 0
-		for event in _all_event_definitions():
-			if event.get("location", "") == location:
-				event_count += 1
-		box.add_child(_muted("关联事件：%d" % event_count))
-		var travel := _button("前往" if unlocked else "剧情尚未解锁", unlocked)
-		travel.disabled = not unlocked
-		travel.pressed.connect(func(): _travel_to(location))
-		box.add_child(travel)
 
 func _build_map_event_canvas(root: VBoxContainer, map_texture: Texture2D) -> void:
 	map_marker_count = 0
@@ -1123,7 +1421,7 @@ func _build_map_event_canvas(root: VBoxContainer, map_texture: Texture2D) -> voi
 	var location_counts := {}
 	for event in _map_marker_events():
 		var location := str(event.get("location", ""))
-		var base: Vector2 = MAP_MARKER_POSITIONS.get(location, Vector2(480, 150))
+		var base := _map_point_position(location)
 		var count := int(location_counts.get(location, 0))
 		location_counts[location] = count + 1
 		var marker := _make_map_marker(event)
@@ -1732,6 +2030,39 @@ func _build_map_asset_manager(tabs: TabContainer) -> void:
 	map_music_path = LineEdit.new()
 	map_music_path.text = GameState.custom_content.get("map_music", "")
 	content.add_child(_make_audio_picker("map_music", map_music_path))
+	content.add_child(_heading("事件发生点", 24))
+	content.add_child(_muted("发生点决定事件入口在大地图上的显示位置；创建事件时会从这里选择发生点。点击下方地图设置发生点坐标。"))
+	content.add_child(_build_map_point_picker())
+	var point_editor := HBoxContainer.new()
+	point_editor.add_theme_constant_override("separation", 12)
+	content.add_child(point_editor)
+	map_point_list = ItemList.new()
+	map_point_list.custom_minimum_size = Vector2(330, 190)
+	map_point_list.item_selected.connect(_select_map_point)
+	point_editor.add_child(map_point_list)
+	var point_form := VBoxContainer.new()
+	point_form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	point_editor.add_child(point_form)
+	point_form.add_child(_muted("发生点名称"))
+	map_point_name = LineEdit.new()
+	map_point_name.placeholder_text = "例如：旧码头仓库"
+	point_form.add_child(map_point_name)
+	point_form.add_child(_muted("当前坐标"))
+	map_point_position_label = _muted("")
+	point_form.add_child(map_point_position_label)
+	_set_map_point_draft_position(draft_map_point_position)
+	var point_buttons := HBoxContainer.new()
+	point_form.add_child(point_buttons)
+	var save_point := _button("保存发生点", true)
+	save_point.pressed.connect(_save_map_point)
+	point_buttons.add_child(save_point)
+	var new_point := _button("清空表单")
+	new_point.pressed.connect(_clear_map_point_form)
+	point_buttons.add_child(new_point)
+	var delete_point := _button("删除自定义点")
+	delete_point.pressed.connect(_delete_map_point)
+	point_form.add_child(delete_point)
+	_refresh_map_point_list()
 	var save := _button("保存大地图图片与音乐", true)
 	save.pressed.connect(func():
 		GameState.custom_content.map_background = map_background_path.text
@@ -1741,6 +2072,144 @@ func _build_map_asset_manager(tabs: TabContainer) -> void:
 		_toast("大地图素材已保存")
 	)
 	content.add_child(save)
+
+func _build_map_point_picker() -> PanelContainer:
+	var holder := _panel_container(Color("101724"))
+	holder.custom_minimum_size = Vector2(0, 320)
+	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	map_point_picker_canvas = Control.new()
+	map_point_picker_canvas.clip_contents = true
+	map_point_picker_canvas.custom_minimum_size = Vector2(980, 300)
+	map_point_picker_canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	map_point_picker_canvas.mouse_filter = Control.MOUSE_FILTER_STOP
+	map_point_picker_canvas.gui_input.connect(_on_map_point_picker_input)
+	holder.add_child(map_point_picker_canvas)
+	var path := map_background_path.text if map_background_path != null else str(GameState.custom_content.get("map_background", ""))
+	var map_texture := _texture_from_path(path, DEFAULT_MAP_IMAGE)
+	if map_texture != null:
+		var map_view := TextureRect.new()
+		map_view.texture = map_texture
+		map_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		map_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		map_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		map_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		map_point_picker_canvas.add_child(map_view)
+	_refresh_map_point_picker_markers()
+	return holder
+
+func _refresh_map_point_picker_texture() -> void:
+	if map_point_picker_canvas == null:
+		return
+	var path := map_background_path.text if map_background_path != null else str(GameState.custom_content.get("map_background", ""))
+	var map_texture := _texture_from_path(path, DEFAULT_MAP_IMAGE)
+	for child in map_point_picker_canvas.get_children():
+		if child is TextureRect:
+			child.texture = map_texture
+			break
+
+func _on_map_point_picker_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		var size := map_point_picker_canvas.size
+		var position := Vector2(clampf(event.position.x, 0.0, size.x), clampf(event.position.y, 0.0, size.y))
+		_set_map_point_draft_position(position)
+		_refresh_map_point_picker_markers()
+
+func _set_map_point_draft_position(position: Vector2) -> void:
+	draft_map_point_position = Vector2(roundi(position.x), roundi(position.y))
+	if map_point_position_label != null:
+		map_point_position_label.text = "X %d · Y %d" % [int(draft_map_point_position.x), int(draft_map_point_position.y)]
+
+func _refresh_map_point_picker_markers() -> void:
+	if map_point_picker_canvas == null:
+		return
+	for child in map_point_picker_canvas.get_children():
+		if child.get_meta("map_point_marker", false):
+			child.queue_free()
+	for point in _all_map_points():
+		var marker := _map_point_preview_marker(str(point.get("name", "")), Vector2(float(point.get("x", 480)), float(point.get("y", 150))), bool(point.get("builtin", false)))
+		map_point_picker_canvas.add_child(marker)
+	var draft_marker := _map_point_preview_marker("当前选择", draft_map_point_position, false, true)
+	map_point_picker_canvas.add_child(draft_marker)
+
+func _map_point_preview_marker(label_text: String, position: Vector2, builtin: bool, is_draft: bool = false) -> Label:
+	var marker := Label.new()
+	marker.set_meta("map_point_marker", true)
+	marker.text = "● " + label_text
+	marker.position = position - Vector2(8, 12)
+	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	marker.add_theme_font_size_override("font_size", 15 if is_draft else 13)
+	marker.add_theme_color_override("font_color", gold if is_draft else (text_dim if builtin else accent))
+	return marker
+
+func _refresh_map_point_list() -> void:
+	if map_point_list == null:
+		return
+	map_point_list.clear()
+	for point in _all_map_points():
+		var name := str(point.get("name", ""))
+		var source := "内置" if bool(point.get("builtin", false)) else "自定义"
+		var index := map_point_list.item_count
+		map_point_list.add_item("[%s] %s  (%d, %d)" % [source, name, int(point.get("x", 0)), int(point.get("y", 0))])
+		map_point_list.set_item_metadata(index, point)
+
+func _select_map_point(index: int) -> void:
+	selected_map_point_index = index
+	if map_point_list == null or index < 0 or index >= map_point_list.item_count:
+		return
+	var point: Dictionary = map_point_list.get_item_metadata(index)
+	map_point_name.text = str(point.get("name", ""))
+	_set_map_point_draft_position(Vector2(float(point.get("x", 480)), float(point.get("y", 150))))
+	_refresh_map_point_picker_markers()
+
+func _clear_map_point_form() -> void:
+	selected_map_point_index = -1
+	if map_point_list != null:
+		map_point_list.deselect_all()
+	if map_point_name != null:
+		map_point_name.text = ""
+		_set_map_point_draft_position(Vector2(480, 150))
+		_refresh_map_point_picker_markers()
+
+func _save_map_point() -> void:
+	var name := map_point_name.text.strip_edges()
+	if name.is_empty():
+		_toast("发生点名称不能为空")
+		return
+	var points := _custom_map_points()
+	var entry := {"name": name, "x": int(draft_map_point_position.x), "y": int(draft_map_point_position.y)}
+	var replaced := false
+	for i in range(points.size()):
+		if points[i] is Dictionary and str(points[i].get("name", "")) == name:
+			points[i] = entry
+			replaced = true
+			break
+	if not replaced:
+		points.append(entry)
+	GameState.save_custom_content()
+	_refresh_content_validation()
+	_refresh_map_point_list()
+	_refresh_map_point_picker_markers()
+	_refresh_editor_location_picker(name)
+	_toast("发生点已保存")
+
+func _delete_map_point() -> void:
+	var name := map_point_name.text.strip_edges()
+	if name.is_empty():
+		_toast("请选择或输入要删除的自定义发生点")
+		return
+	var points := _custom_map_points()
+	for i in range(points.size()):
+		if points[i] is Dictionary and str(points[i].get("name", "")) == name:
+			points.remove_at(i)
+			GameState.save_custom_content()
+			_refresh_content_validation()
+			_refresh_map_point_list()
+			_refresh_map_point_picker_markers()
+			_refresh_editor_location_picker()
+			_clear_map_point_form()
+			_toast("自定义发生点已删除")
+			return
+	_toast("内置发生点不能删除；如有同名自定义覆盖，可先保存后再删除覆盖")
 
 func _build_event_editor(tabs: TabContainer) -> void:
 	var page := HBoxContainer.new()
@@ -1757,7 +2226,12 @@ func _build_event_editor(tabs: TabContainer) -> void:
 	for event in scenario.events:
 		editor_list.add_item("[内置%s] %s · %s" % ["·锁" if event.get("locked", false) else "", event.title, event.get("id", "")])
 	for event in GameState.custom_content.events:
-		editor_list.add_item("[自定义%s] %s · %s" % ["·锁" if event.get("locked", false) else "", event.get("name", event.get("title", "")), event.get("id", "")])
+		var state_tags := ""
+		if bool(event.get("draft", false)):
+			state_tags += "·未完善"
+		if bool(event.get("locked", false)):
+			state_tags += "·锁"
+		editor_list.add_item("[自定义%s] %s · %s" % [state_tags, event.get("name", event.get("title", "")), event.get("id", "")])
 	editor_list.item_selected.connect(_select_event)
 	var add := _button("新建事件", true)
 	add.pressed.connect(_new_custom_event)
@@ -1800,8 +2274,7 @@ func _build_event_editor(tabs: TabContainer) -> void:
 	form.add_child(editor_type)
 	form.add_child(_muted("发生地点"))
 	editor_location = OptionButton.new()
-	for location in LOCATIONS:
-		editor_location.add_item(location)
+	_refresh_editor_location_picker()
 	form.add_child(editor_location)
 	form.add_child(_muted("场景背景图"))
 	editor_background_path = LineEdit.new()
@@ -1834,6 +2307,9 @@ func _build_event_editor(tabs: TabContainer) -> void:
 	editor_repeatable = CheckBox.new()
 	editor_repeatable.text = "允许重复触发"
 	form.add_child(editor_repeatable)
+	editor_draft = CheckBox.new()
+	editor_draft.text = "事件数据未完善，暂不可使用"
+	form.add_child(editor_draft)
 	editor_ends_continuous = CheckBox.new()
 	editor_ends_continuous.text = "到达此事件时结束连续流程"
 	form.add_child(editor_ends_continuous)
@@ -1939,6 +2415,7 @@ func _select_event(index: int) -> void:
 		editor_music_path.text = event.get("music", "")
 		_set_event_lock_form(event)
 		_set_event_schedule_form(event)
+		editor_draft.button_pressed = bool(event.get("draft", false))
 		editor_text.text = event.text
 		_set_event_options_form(event)
 		_refresh_event_preview(event)
@@ -1956,6 +2433,7 @@ func _select_event(index: int) -> void:
 			editor_music_path.text = event.get("music", "")
 			_set_event_lock_form(event)
 			_set_event_schedule_form(event)
+			editor_draft.button_pressed = bool(event.get("draft", false))
 			editor_text.text = event.text
 			_set_event_options_form(event)
 			_refresh_event_preview(event)
@@ -2086,7 +2564,7 @@ func _remove_editor_option() -> void:
 		_select_editor_option(selected_editor_option_index)
 
 func _event_from_editor_fields() -> Dictionary:
-	return {"type":editor_type.get_item_text(editor_type.selected), "location":editor_location.get_item_text(editor_location.selected), "locked":editor_lock.button_pressed, "prerequisites":editor_prerequisites.text.split(","), "flow_mode":editor_flow_mode.get_item_metadata(editor_flow_mode.selected), "action_cost":int(editor_action_cost.value), "text":editor_text.text, "options":editor_options}
+	return {"type":editor_type.get_item_text(editor_type.selected), "location":editor_location.get_item_text(editor_location.selected), "locked":editor_lock.button_pressed, "draft":editor_draft.button_pressed, "prerequisites":editor_prerequisites.text.split(","), "flow_mode":editor_flow_mode.get_item_metadata(editor_flow_mode.selected), "action_cost":int(editor_action_cost.value), "text":editor_text.text, "options":editor_options}
 
 func _refresh_event_preview(event) -> void:
 	for child in editor_preview.get_children():
@@ -2095,7 +2573,7 @@ func _refresh_event_preview(event) -> void:
 	if event == null:
 		nodes = [["入口", "选择左侧事件"], ["对话", "编辑属性"], ["出口", "保存内容"]]
 	else:
-		var lock_text := "\n锁：%s" % ",".join(event.get("prerequisites", [])) if event.get("locked", false) else "\n无事件锁"
+		var lock_text := "\n未完善：不可使用" if event.get("draft", false) else ("\n锁：%s" % ",".join(event.get("prerequisites", [])) if event.get("locked", false) else "\n无事件锁")
 		nodes.append(["入口", "%s\n地点：%s\n%s · %d行动点%s" % [event.get("type", "剧情事件"), event.get("location", "未设置"), "连续" if event.get("flow_mode", "interruptible") == "continuous" else "可中断", int(event.get("action_cost", 1)), lock_text]])
 		nodes.append(["对话节点", str(event.get("text", "")).left(56)])
 		for option in event.get("options", []):
@@ -2123,7 +2601,7 @@ func _new_custom_event() -> void:
 	editor_event_id.editable = true
 	editor_name.text = "未命名事件"
 	editor_type.select(0)
-	editor_location.select(1)
+	_select_location_value("雾港码头")
 	editor_background_path.text = ""
 	_set_preview(editor_background_preview, "")
 	editor_music_path.text = ""
@@ -2132,17 +2610,36 @@ func _new_custom_event() -> void:
 	editor_prerequisite_mode.select(0)
 	editor_flow_mode.select(0)
 	editor_repeatable.button_pressed = false
+	editor_draft.button_pressed = false
 	editor_ends_continuous.button_pressed = false
 	editor_action_cost.value = 1
 	editor_text.text = ""
 	_set_event_options_form({"options":[{"text":"返回地图", "action":"open_map"}]})
 	_refresh_event_preview({"type":"剧情事件", "location":"雾港码头", "locked":false, "text":"新对话节点", "options":editor_options})
 
+func _refresh_editor_location_picker(selected_location: String = "") -> void:
+	if editor_location == null:
+		return
+	var current := selected_location
+	if current.is_empty() and editor_location.item_count > 0:
+		current = editor_location.get_item_text(editor_location.selected)
+	editor_location.clear()
+	for location in _map_point_names():
+		editor_location.add_item(location)
+	if editor_location.item_count == 0:
+		editor_location.add_item("雾港码头")
+	_select_location_value(current if not current.is_empty() else "雾港码头")
+
 func _select_location_value(location: String) -> void:
+	if editor_location.item_count == 0:
+		editor_location.add_item(location if not location.is_empty() else "雾港码头")
 	for i in range(editor_location.item_count):
 		if editor_location.get_item_text(i) == location:
 			editor_location.select(i)
 			return
+	if not location.is_empty():
+		editor_location.add_item(location)
+		editor_location.select(editor_location.item_count - 1)
 
 func _set_event_lock_form(event: Dictionary) -> void:
 	editor_lock.button_pressed = bool(event.get("locked", false))
@@ -2155,6 +2652,7 @@ func _set_event_lock_form(event: Dictionary) -> void:
 func _set_event_schedule_form(event: Dictionary) -> void:
 	editor_flow_mode.select(1 if event.get("flow_mode", "interruptible") == "continuous" else 0)
 	editor_repeatable.button_pressed = bool(event.get("repeatable", false))
+	editor_draft.button_pressed = bool(event.get("draft", false))
 	editor_ends_continuous.button_pressed = bool(event.get("ends_continuous", false))
 	editor_action_cost.value = int(event.get("action_cost", 1))
 
@@ -2206,7 +2704,9 @@ func _save_editor_event() -> void:
 	var saved_options := editor_options.duplicate(true)
 	if saved_options.is_empty():
 		saved_options = [{"text":"返回地图", "action":"open_map"}]
-	var entry := {"id":event_id, "name":editor_name.text.strip_edges(), "title":editor_name.text.strip_edges(), "chapter":"自定义事件", "speaker":"旁白", "type":editor_type.get_item_text(editor_type.selected), "location":editor_location.get_item_text(editor_location.selected), "background_image":editor_background_path.text, "music":editor_music_path.text, "locked":editor_lock.button_pressed, "prerequisites":prerequisites, "prerequisite_mode":editor_prerequisite_mode.get_item_metadata(editor_prerequisite_mode.selected), "flow_mode":editor_flow_mode.get_item_metadata(editor_flow_mode.selected), "repeatable":editor_repeatable.button_pressed, "action_cost":int(editor_action_cost.value), "ends_continuous":editor_ends_continuous.button_pressed, "text":editor_text.text, "options":saved_options}
+	var incomplete_notes := _import_event_incomplete_notes({"location":editor_location.get_item_text(editor_location.selected), "background_image":editor_background_path.text, "music":editor_music_path.text})
+	var draft := editor_draft.button_pressed or not incomplete_notes.is_empty()
+	var entry := {"id":event_id, "name":editor_name.text.strip_edges(), "title":editor_name.text.strip_edges(), "chapter":"自定义事件", "speaker":"旁白", "type":editor_type.get_item_text(editor_type.selected), "location":editor_location.get_item_text(editor_location.selected), "background_image":editor_background_path.text, "music":editor_music_path.text, "locked":editor_lock.button_pressed, "draft":draft, "import_notes":incomplete_notes if draft else "", "prerequisites":prerequisites, "prerequisite_mode":editor_prerequisite_mode.get_item_metadata(editor_prerequisite_mode.selected), "flow_mode":editor_flow_mode.get_item_metadata(editor_flow_mode.selected), "repeatable":editor_repeatable.button_pressed, "action_cost":int(editor_action_cost.value), "ends_continuous":editor_ends_continuous.button_pressed, "text":editor_text.text, "options":saved_options}
 	if custom_index >= 0 and custom_index < GameState.custom_content.events.size():
 		GameState.custom_content.events[custom_index] = entry
 	else:
@@ -2748,9 +3248,15 @@ func _build_database_overview(tabs: TabContainer) -> void:
 	var import_button := _button("导入剧本包", true)
 	import_button.pressed.connect(_request_package_import)
 	actions.add_child(import_button)
+	var import_events_button := _button("导入事件文案", true)
+	import_events_button.pressed.connect(_request_event_text_import)
+	actions.add_child(import_events_button)
 	var export_button := _button("导出剧本包")
 	export_button.pressed.connect(_request_package_export)
 	actions.add_child(export_button)
+	var template_button := _button("导出事件导入模板")
+	template_button.pressed.connect(_request_event_import_template_export)
+	actions.add_child(template_button)
 	var validation_panel := _panel_container()
 	page.add_child(validation_panel)
 	var validation_box := VBoxContainer.new()

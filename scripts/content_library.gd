@@ -44,6 +44,8 @@ func event_unlocked(event_id: String, visited: Array) -> bool:
 	if not events.has(event_id):
 		return false
 	var event: Dictionary = events[event_id]
+	if bool(event.get("draft", false)):
+		return false
 	if not bool(event.get("locked", false)):
 		return true
 	var prerequisites: Array = event.get("prerequisites", [])
@@ -57,6 +59,9 @@ func lock_description(event_id: String) -> String:
 	if not events.has(event_id):
 		return "事件不存在"
 	var event: Dictionary = events[event_id]
+	if bool(event.get("draft", false)):
+		var notes := str(event.get("import_notes", "")).strip_edges()
+		return "事件数据未完善，暂不可使用" if notes.is_empty() else "事件数据未完善：%s" % notes
 	var prerequisites: Array = event.get("prerequisites", [])
 	if prerequisites.is_empty():
 		return "该事件已锁定，未设置解锁条件"
