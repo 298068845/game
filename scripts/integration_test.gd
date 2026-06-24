@@ -94,11 +94,17 @@ func _initialize() -> void:
 	app.show_shop()
 	await process_frame
 	assert(app.current_view == "shop")
+	assert(app._sellable_inventory_items().is_empty())
 	app.show_inventory()
 	await process_frame
 	state.add_item("item.herb", 2)
 	assert(state.craft_item("item.tonic"))
 	state.add_item("item.silver_salt", 1)
+	var sellables: Array = app._sellable_inventory_items()
+	assert(sellables.size() == 1)
+	assert(str(sellables[0].id) == "item.silver_salt")
+	assert(int(sellables[0].price) == 5)
+	assert(int(sellables[0].quantity) == 1)
 	var coins_before: int = int(state.player.coins)
 	assert(state.sell_item("item.silver_salt", 1, 5))
 	assert(int(state.player.coins) == coins_before + 5)
@@ -133,6 +139,21 @@ func _initialize() -> void:
 		if state.custom_content.events[i].get("id", "") == "custom.import_text_test":
 			state.custom_content.events.remove_at(i)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(event_import_path))
+	app._reload_event_registry()
+	state.custom_content.events.append({"id":"custom.countdown_source", "title":"倒计时测试", "type":"剧情事件", "location":"渡船", "text":"倒计时入口", "countdown_days":1, "timeout_event":"custom.countdown_timeout", "options":[{"text":"返回地图", "action":"open_map"}]})
+	state.custom_content.events.append({"id":"custom.countdown_timeout", "title":"倒计时超时", "type":"剧情事件", "location":"渡船", "text":"倒计时结束", "options":[{"text":"返回地图", "action":"open_map"}]})
+	app._reload_event_registry()
+	app.show_map()
+	await process_frame
+	assert(int(state.world.event_countdowns.get("custom.countdown_source", -1)) == 1)
+	assert(app._event_countdown_remaining(app.events["custom.countdown_source"]) == 1)
+	assert(app._advance_event_countdowns() == "custom.countdown_timeout")
+	assert(state.world.visited.has("custom.countdown_source"))
+	assert(not state.world.event_countdowns.has("custom.countdown_source"))
+	for i in range(state.custom_content.events.size() - 1, -1, -1):
+		var cleanup_id := str(state.custom_content.events[i].get("id", ""))
+		if cleanup_id == "custom.countdown_source" or cleanup_id == "custom.countdown_timeout":
+			state.custom_content.events.remove_at(i)
 	app._reload_event_registry()
 	app.map_point_name.text = "测试发生点"
 	app._set_map_point_draft_position(Vector2(321, 222))

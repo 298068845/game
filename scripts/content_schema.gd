@@ -65,6 +65,8 @@ static func normalize_event(source: Dictionary) -> Dictionary:
 		event.flow_mode = "interruptible"
 	event.repeatable = bool(event.get("repeatable", false))
 	event.action_cost = maxi(0, int(event.get("action_cost", 1)))
+	event.countdown_days = maxi(0, int(event.get("countdown_days", 0)))
+	event.timeout_event = str(event.get("timeout_event", ""))
 	event.ends_continuous = bool(event.get("ends_continuous", false))
 	event.background_image = str(event.get("background_image", ""))
 	event.music = str(event.get("music", ""))
@@ -141,6 +143,8 @@ static func _validate_scenario(scenario: Dictionary, custom_events: Array, datab
 			errors.append("事件流程模式无效：%s" % event_id)
 		if int(event.get("action_cost", -1)) < 0:
 			errors.append("事件行动点消耗无效：%s" % event_id)
+		if int(event.get("countdown_days", 0)) < 0:
+			errors.append("事件倒计时无效：%s" % event_id)
 		if not event.has("music"):
 			warnings.append("事件未声明 music 字段：%s" % event_id)
 
@@ -152,6 +156,9 @@ static func _validate_scenario(scenario: Dictionary, custom_events: Array, datab
 		if not event is Dictionary:
 			continue
 		var event_id := str(event.get("id", ""))
+		var timeout_target := str(event.get("timeout_event", ""))
+		if not timeout_target.is_empty() and not ids.has(timeout_target):
+			errors.append("事件超时目标不存在：%s -> %s" % [event_id, timeout_target])
 		for option in event.get("options", []):
 			if not option is Dictionary:
 				errors.append("事件选项必须是对象：%s" % event_id)

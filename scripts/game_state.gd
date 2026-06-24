@@ -38,7 +38,7 @@ func reset_run() -> void:
 		"training_growth": 3,
 		"training_combat": 3
 	}
-	world = {"scene": "intro_01", "location": "渡船", "visited": [], "flags": {}, "minutes": 0, "log": [], "battle_won": false, "date":{"year":1,"month":1,"day":1}, "action_points":3, "max_action_points":3, "active_continuous":"", "repeat_counts":{}, "quests": {}, "relations": {"林鸦": 0, "老乔": 0, "港民": 0}, "random_seed": 137, "random_cooldowns": {}}
+	world = {"scene": "intro_01", "location": "渡船", "visited": [], "flags": {}, "minutes": 0, "log": [], "battle_won": false, "date":{"year":1,"month":1,"day":1}, "action_points":3, "max_action_points":3, "active_continuous":"", "repeat_counts":{}, "event_countdowns": {}, "quests": {}, "relations": {"林鸦": 0, "老乔": 0, "港民": 0}, "random_seed": 137, "random_cooldowns": {}}
 	battle = {}
 
 func save_game() -> bool:
@@ -120,6 +120,8 @@ func _migrate_save(version: int) -> void:
 		world.active_continuous = ""
 	if not world.has("repeat_counts"):
 		world.repeat_counts = {}
+	if not world.has("event_countdowns") or not world.event_countdowns is Dictionary:
+		world.event_countdowns = {}
 	if not player.has("satiety"):
 		player.satiety = 80
 	if not player.has("max_satiety"):

@@ -37,6 +37,8 @@ var editor_flow_mode: OptionButton
 var editor_repeatable: CheckBox
 var editor_draft: CheckBox
 var editor_action_cost: SpinBox
+var editor_countdown_days: SpinBox
+var editor_timeout_event: OptionButton
 var editor_ends_continuous: CheckBox
 var editor_background_path: LineEdit
 var editor_background_preview: TextureRect
@@ -105,6 +107,7 @@ var preview_music_player: AudioStreamPlayer
 var current_map_music_path := ""
 var current_event_music_path := ""
 var map_marker_count := 0
+var map_menu_overlay: Control
 var selected_map_point_index := -1
 var draft_map_point_position := Vector2(480, 150)
 
@@ -121,6 +124,14 @@ const LOCATIONS := ["渡船", "雾港码头", "雾港广场", "黑帆酒馆", "�
 const DEFAULT_MAP_IMAGE := "res://assets/defaults/default_map.png"
 const DEFAULT_ENEMY_IMAGE := "res://assets/defaults/default_enemy.png"
 const DEFAULT_ITEM_IMAGE := "res://assets/defaults/default_item.png"
+const MAP_CANVAS_FALLBACK_SIZE := Vector2(980, 300)
+const MAP_CLICK_ZOOM_SCALE := 1.35
+const MAP_CLICK_ZOOM_DURATION := 0.34
+const MAP_CLICK_FADE_ALPHA := 0.32
+const DEFAULT_SELL_ITEM_PRICES := {
+	"item.silver_salt": 5,
+	"item.salvage": 2
+}
 const LOCATION_ENTRY := {
 	"渡船": "intro_01",
 	"雾港码头": "harbor_01",
@@ -584,6 +595,8 @@ func _normalize_imported_event(source: Dictionary, index: int, errors: Array[Str
 		"flow_mode": str(source.get("flow_mode", "interruptible")),
 		"repeatable": bool(source.get("repeatable", false)),
 		"action_cost": int(source.get("action_cost", 1)),
+		"countdown_days": int(source.get("countdown_days", 0)),
+		"timeout_event": str(source.get("timeout_event", "")),
 		"ends_continuous": bool(source.get("ends_continuous", false)),
 		"text": text,
 		"options": options
@@ -833,7 +846,36 @@ func rest_day() -> void:
 	GameState.player.hp = mini(int(GameState.player.hp), _effective_combat("生命"))
 	GameState.add_log("休息至%s，消耗%d饱腹，生命上限惩罚%d" % [GameState.date_text(), result.satiety_cost, result.hp_penalty])
 	_update_time_status()
+	var timeout_event_id := _advance_event_countdowns()
+	if not timeout_event_id.is_empty():
+		show_event(timeout_event_id)
+		return
 	show_rest_result(result)
+
+func _advance_event_countdowns() -> String:
+	_ensure_event_countdown_state()
+	var countdowns: Dictionary = GameState.world.event_countdowns
+	var expired_target := ""
+	for event_id_value in countdowns.keys():
+		var event_id := str(event_id_value)
+		if not events.has(event_id) or GameState.world.visited.has(event_id):
+			countdowns.erase(event_id)
+			continue
+		var remaining := int(countdowns.get(event_id, 0)) - 1
+		countdowns[event_id] = remaining
+		var event: Dictionary = events[event_id]
+		GameState.add_log("事件倒计时：%s 剩余%d天" % [event.get("title", event_id), maxi(remaining, 0)])
+		if remaining <= 0 and expired_target.is_empty():
+			countdowns.erase(event_id)
+			if not GameState.world.visited.has(event_id):
+				GameState.world.visited.append(event_id)
+			var target := str(event.get("timeout_event", ""))
+			if not target.is_empty() and events.has(target):
+				expired_target = target
+				GameState.add_log("事件超时：%s，触发%s" % [event.get("title", event_id), events[target].get("title", target)])
+			else:
+				GameState.add_log("事件超时：%s" % event.get("title", event_id))
+	return expired_target
 
 func show_rest_result(result: Dictionary) -> void:
 	_activate_map_music()
@@ -902,6 +944,9 @@ func show_inn() -> void:
 			show_inn()
 	)
 	craft_box.add_child(craft_ration)
+	var back := _button("返回地图", true)
+	back.pressed.connect(show_map)
+	root.add_child(back)
 
 func show_shop() -> void:
 	if _block_if_continuous("进入商店"):
@@ -918,16 +963,65 @@ func show_shop() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
 	card.add_child(box)
+	_rebuild_shop_sell_list(box)
+	var back := _button("返回地图", true)
+	back.pressed.connect(show_map)
+	root.add_child(back)
+
+func _rebuild_shop_sell_list(box: VBoxContainer) -> void:
+	for child in box.get_children():
+		box.remove_child(child)
+		child.queue_free()
 	box.add_child(_heading("出售", 22))
-	box.add_child(_muted("银币：%d\n银灰盐块：%d" % [int(GameState.player.get("coins", 0)), int(GameState.player.inventory.get("item.silver_salt", 0))]))
-	var sell_salt := _button("出售银灰盐（5银币）", true)
-	sell_salt.disabled = not GameState.has_item("item.silver_salt")
-	sell_salt.pressed.connect(func():
-		if GameState.sell_item("item.silver_salt", 1, 5):
-			_toast("出售银灰盐，获得5银币")
-			show_shop()
+	box.add_child(_muted("银币：%d" % int(GameState.player.get("coins", 0))))
+	var sellable_items := _sellable_inventory_items()
+	if sellable_items.is_empty():
+		box.add_child(_muted("背包里暂时没有可出售的换金道具。"))
+		return
+	for entry in sellable_items:
+		var item_id := str(entry.get("id", ""))
+		var item_name := str(entry.get("name", item_id))
+		var quantity := int(entry.get("quantity", 0))
+		var price := int(entry.get("price", 0))
+		var sell_button := _button("%s x%d  ·  出售 1 个（%d银币）" % [item_name, quantity, price], true)
+		sell_button.disabled = quantity <= 0 or price <= 0
+		sell_button.pressed.connect(func():
+			if GameState.sell_item(item_id, 1, price):
+				_toast("出售%s，获得%d银币" % [item_name, price])
+				show_shop()
+		)
+		box.add_child(sell_button)
+
+func _sellable_inventory_items() -> Array:
+	var result: Array = []
+	for item_id_value in GameState.player.inventory.keys():
+		var item_id := str(item_id_value)
+		var quantity := int(GameState.player.inventory.get(item_id, 0))
+		if quantity <= 0:
+			continue
+		var definition := _find_content_item(item_id)
+		if definition.is_empty():
+			continue
+		var price := _sell_price_for_item(definition)
+		if price <= 0:
+			continue
+		result.append({"id": item_id, "name": definition.get("name", item_id), "quantity": quantity, "price": price})
+	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return str(a.get("name", "")) < str(b.get("name", ""))
 	)
-	box.add_child(sell_salt)
+	return result
+
+func _sell_price_for_item(definition: Dictionary) -> int:
+	if definition.has("sell_price"):
+		return maxi(0, int(definition.get("sell_price", 0)))
+	if definition.has("price"):
+		return maxi(0, int(definition.get("price", 0)))
+	var item_id := str(definition.get("id", ""))
+	if DEFAULT_SELL_ITEM_PRICES.has(item_id):
+		return int(DEFAULT_SELL_ITEM_PRICES[item_id])
+	if str(definition.get("type", "")) == "换金道具":
+		return 1
+	return 0
 
 func _all_equipment() -> Array:
 	return content_library.all_equipment()
@@ -1082,6 +1176,8 @@ func show_event(event_id: String) -> void:
 	GameState.world.location = event.get("location", "未知地点")
 	if not GameState.world.visited.has(event_id):
 		GameState.world.visited.append(event_id)
+	_ensure_event_countdown_state()
+	GameState.world.event_countdowns.erase(event_id)
 	GameState.world.minutes = int(GameState.world.get("minutes", 0)) + 1
 	_update_world_systems_for_event(event_id, event)
 	if bool(event.get("ends_continuous", false)):
@@ -1109,15 +1205,6 @@ func show_event(event_id: String) -> void:
 	shade.color = Color(0.03, 0.06, 0.1, 0.22)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	stage.add_child(shade)
-	var meta := Label.new()
-	meta.text = "%s · %s · %s" % [event.chapter, event.type, event.get("location", "未知地点")]
-	meta.position = Vector2(28, 22)
-	meta.add_theme_color_override("font_color", accent if event.type == "剧情事件" else gold)
-	meta.add_theme_font_size_override("font_size", 17)
-	stage.add_child(meta)
-	var title := _heading(event.title, 34)
-	title.position = Vector2(28, 52)
-	stage.add_child(title)
 	_add_event_portraits(stage, event)
 	var dialogue_panel := _panel_container(Color(0.08, 0.12, 0.18, 0.94))
 	dialogue_panel.custom_minimum_size.y = 235
@@ -1387,51 +1474,57 @@ func show_map() -> void:
 	_activate_map_music()
 	current_view = "map"
 	_clear_view()
-	var page_scroll := ScrollContainer.new()
-	page_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content_root.add_child(page_scroll)
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 14)
+	_sync_visible_event_countdowns()
+	var root := Control.new()
+	root.clip_contents = true
 	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page_scroll.add_child(root)
-	root.add_child(_heading("雾港地图", 30))
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content_root.add_child(root)
 	var map_texture := _texture_from_path(GameState.custom_content.get("map_background", ""), DEFAULT_MAP_IMAGE)
 	_build_map_event_canvas(root, map_texture)
-	root.add_child(_muted("%s · 行动点 %d/%d · 饱腹 %d/%d\n当前位置：%s。每次主动开始事件消耗行动点；行动点用尽后需要休息。" % [GameState.date_text(), int(GameState.world.action_points), int(GameState.world.max_action_points), int(GameState.player.satiety), int(GameState.player.max_satiety), GameState.world.get("location", "渡船")]))
-	root.add_child(_muted(_relations_line()))
+	_build_map_bottom_menu(root)
 
-func _build_map_event_canvas(root: VBoxContainer, map_texture: Texture2D) -> void:
+func _build_map_event_canvas(root: Control, map_texture: Texture2D) -> void:
 	map_marker_count = 0
 	var canvas_panel := _panel_container(Color("101724"))
-	canvas_panel.custom_minimum_size = Vector2(0, 320)
+	canvas_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	canvas_panel.custom_minimum_size = Vector2(0, 0)
 	canvas_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	canvas_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(canvas_panel)
 	var canvas := Control.new()
 	canvas.clip_contents = true
-	canvas.custom_minimum_size = Vector2(980, 300)
+	canvas.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	canvas.custom_minimum_size = Vector2(0, 0)
 	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	canvas_panel.add_child(canvas)
+	var map_layer := Control.new()
+	map_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(map_layer)
 	if map_texture != null:
 		var map_view := TextureRect.new()
 		map_view.texture = map_texture
 		map_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		map_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		map_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		canvas.add_child(map_view)
+		map_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		map_layer.add_child(map_view)
 	var location_counts := {}
 	for event in _map_marker_events():
 		var location := str(event.get("location", ""))
 		var base := _map_point_position(location)
 		var count := int(location_counts.get(location, 0))
 		location_counts[location] = count + 1
-		var marker := _make_map_marker(event)
+		var marker := _make_map_marker(event, map_layer)
 		marker.position = base + Vector2((count % 3) * 48, floori(count / 3.0) * 48)
-		canvas.add_child(marker)
+		map_layer.add_child(marker)
 		map_marker_count += 1
 	for service in _map_service_markers():
-		var marker := _make_map_service_marker(service)
+		var marker := _make_map_service_marker(service, map_layer)
 		marker.position = service.get("position", Vector2(480, 150))
-		canvas.add_child(marker)
+		map_layer.add_child(marker)
 		map_marker_count += 1
 	var legend := HBoxContainer.new()
 	legend.position = Vector2(18, 18)
@@ -1441,10 +1534,222 @@ func _build_map_event_canvas(root: VBoxContainer, map_texture: Texture2D) -> voi
 		var label := _muted(text)
 		label.add_theme_color_override("font_color", text_main)
 		legend.add_child(label)
+	var transition_shade := ColorRect.new()
+	transition_shade.color = Color(0.03, 0.06, 0.1, 0.0)
+	transition_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	transition_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(transition_shade)
+	map_layer.set_meta("transition_shade", transition_shade)
 	if map_marker_count == 0:
 		var empty := _muted("暂无可进入事件；推进剧情后地图上会出现入口标记。")
 		empty.position = Vector2(18, 260)
 		canvas.add_child(empty)
+
+func _build_map_bottom_menu(root: Control) -> void:
+	map_menu_overlay = Control.new()
+	map_menu_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map_menu_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(map_menu_overlay)
+	var menu_panel := PanelContainer.new()
+	menu_panel.anchor_left = 0.5
+	menu_panel.anchor_right = 0.5
+	menu_panel.anchor_top = 1.0
+	menu_panel.anchor_bottom = 1.0
+	menu_panel.offset_left = -260
+	menu_panel.offset_right = 260
+	menu_panel.offset_top = -68
+	menu_panel.offset_bottom = -14
+	menu_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	menu_panel.add_theme_stylebox_override("panel", _box(Color(0.06, 0.09, 0.14, 0.88), 8, 0))
+	root.add_child(menu_panel)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 10)
+	menu_panel.add_child(row)
+	for spec in [["个人属性", _show_map_profile_panel], ["背包", _show_map_bag_panel], ["好感度", _show_map_relations_panel], ["系统", _show_map_system_panel]]:
+		var button := _button(str(spec[0]), true)
+		button.custom_minimum_size = Vector2(118, 40)
+		button.pressed.connect(spec[1])
+		row.add_child(button)
+
+func _clear_map_menu_overlay() -> void:
+	if map_menu_overlay == null:
+		return
+	for child in map_menu_overlay.get_children():
+		child.queue_free()
+
+func _map_overlay_panel(title_text: String, size: Vector2 = Vector2(760, 430)) -> VBoxContainer:
+	_clear_map_menu_overlay()
+	var panel_container := PanelContainer.new()
+	panel_container.anchor_left = 0.5
+	panel_container.anchor_right = 0.5
+	panel_container.anchor_top = 1.0
+	panel_container.anchor_bottom = 1.0
+	panel_container.offset_left = -size.x * 0.5
+	panel_container.offset_right = size.x * 0.5
+	panel_container.offset_top = -size.y - 84
+	panel_container.offset_bottom = -84
+	panel_container.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel_container.add_theme_stylebox_override("panel", _box(Color(0.08, 0.12, 0.18, 0.94), 8, 1))
+	map_menu_overlay.add_child(panel_container)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	panel_container.add_child(box)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 10)
+	box.add_child(header)
+	header.add_child(_heading(title_text, 24))
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(spacer)
+	var close := _button("关闭")
+	close.custom_minimum_size = Vector2(74, 34)
+	close.pressed.connect(_clear_map_menu_overlay)
+	header.add_child(close)
+	return box
+
+func _show_map_profile_panel() -> void:
+	var box := _map_overlay_panel("个人属性", Vector2(760, 340))
+	var content := HBoxContainer.new()
+	content.add_theme_constant_override("separation", 18)
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(content)
+	var portrait := TextureRect.new()
+	portrait.texture = _player_portrait_texture()
+	portrait.custom_minimum_size = Vector2(220, 260)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	content.add_child(portrait)
+	var stats := VBoxContainer.new()
+	stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stats.add_theme_constant_override("separation", 12)
+	content.add_child(stats)
+	stats.add_child(_heading("叙事五维", 20))
+	stats.add_child(_map_stat_grid(ContentSchema.CHECK_STATS, true))
+	stats.add_child(_heading("战斗五维", 20))
+	stats.add_child(_map_stat_grid(ContentSchema.COMBAT_STATS, false))
+
+func _map_stat_grid(stat_names: Array, check_stats := true) -> GridContainer:
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 8)
+	for stat_name in stat_names:
+		var label := _muted(str(stat_name))
+		grid.add_child(label)
+		var value := Label.new()
+		value.text = str(_effective_check(str(stat_name)) if check_stats else _effective_combat(str(stat_name)))
+		value.add_theme_color_override("font_color", gold)
+		value.add_theme_font_size_override("font_size", 20)
+		grid.add_child(value)
+	return grid
+
+func _show_map_bag_panel() -> void:
+	var box := _map_overlay_panel("背包", Vector2(900, 340))
+	box.add_child(_muted("生命：%d/%d  ·  饱腹：%d/%d  ·  银币：%d" % [int(GameState.player.hp), _effective_combat("生命"), int(GameState.player.satiety), int(GameState.player.max_satiety), int(GameState.player.get("coins", 0))]))
+	var content := HBoxContainer.new()
+	content.add_theme_constant_override("separation", 18)
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(content)
+	var equipment_grid := GridContainer.new()
+	equipment_grid.columns = 3
+	equipment_grid.custom_minimum_size.x = 390
+	equipment_grid.add_theme_constant_override("h_separation", 8)
+	equipment_grid.add_theme_constant_override("v_separation", 8)
+	content.add_child(equipment_grid)
+	for slot in ["", "头盔", "", "武器", "盔甲", "臂甲", "", "鞋子", "饰品"]:
+		if str(slot).is_empty():
+			var blank := Control.new()
+			blank.custom_minimum_size = Vector2(120, 82)
+			equipment_grid.add_child(blank)
+		else:
+			equipment_grid.add_child(_map_equipment_slot_card(str(slot)))
+	var bag_scroll := ScrollContainer.new()
+	bag_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bag_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(bag_scroll)
+	var bag_list := VBoxContainer.new()
+	bag_list.add_theme_constant_override("separation", 8)
+	bag_scroll.add_child(bag_list)
+	if GameState.player.inventory.is_empty():
+		bag_list.add_child(_muted("背包为空。"))
+	for item_id in GameState.player.inventory.keys():
+		bag_list.add_child(_map_bag_item_row(str(item_id)))
+
+func _map_equipment_slot_card(slot: String) -> PanelContainer:
+	var card := _panel_container(panel_alt)
+	card.custom_minimum_size = Vector2(120, 96)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	card.add_child(box)
+	box.add_child(_muted(slot))
+	var item_id = GameState.player.equipment.get(slot)
+	box.add_child(_heading("未装备" if item_id == null else _item_name(str(item_id)), 15))
+	if item_id != null:
+		var unequip := _button("卸下")
+		unequip.custom_minimum_size = Vector2(72, 30)
+		unequip.pressed.connect(func():
+			GameState.unequip_slot(slot)
+			GameState.player.hp = mini(int(GameState.player.hp), _effective_combat("生命"))
+			_show_map_bag_panel()
+		)
+		box.add_child(unequip)
+	return card
+
+func _map_bag_item_row(item_id: String) -> PanelContainer:
+	var definition := _find_content_item(item_id)
+	var row_card := _panel_container(panel_alt)
+	row_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row_card.add_child(row)
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(info)
+	var kind: String = str(definition.get("slot", definition.get("type", "其他")))
+	info.add_child(_heading("%s x%d" % [definition.get("name", item_id), int(GameState.player.inventory[item_id])], 16))
+	info.add_child(_muted(kind))
+	if item_id == "item.ration":
+		var eat := _button("食用", true)
+		eat.custom_minimum_size = Vector2(72, 34)
+		eat.pressed.connect(func():
+			if GameState.eat_ration():
+				_update_time_status()
+				_toast("食用旅行口粮，恢复30点饱腹")
+			_show_map_bag_panel()
+		)
+		row.add_child(eat)
+	elif definition.has("slot"):
+		var equip := _button("装备", true)
+		equip.custom_minimum_size = Vector2(72, 34)
+		equip.pressed.connect(func():
+			if GameState.equip_item(item_id, str(definition.slot)):
+				GameState.player.hp = mini(int(GameState.player.hp), _effective_combat("生命"))
+				_toast("已装备：" + _item_name(item_id))
+			_show_map_bag_panel()
+		)
+		row.add_child(equip)
+	return row_card
+
+func _show_map_relations_panel() -> void:
+	var box := _map_overlay_panel("好感度", Vector2(560, 300))
+	var relations: Dictionary = GameState.world.get("relations", {})
+	for name in relations.keys():
+		var value := int(relations[name])
+		box.add_child(_heading("%s  %+d" % [name, value], 20))
+		var bar := ProgressBar.new()
+		bar.min_value = 0
+		bar.max_value = 10
+		bar.value = clampi(value, 0, 10)
+		bar.custom_minimum_size.y = 24
+		box.add_child(bar)
+
+func _show_map_system_panel() -> void:
+	var box := _map_overlay_panel("系统", Vector2(420, 250))
+	for spec in [["保存", func(): _toast("保存成功" if GameState.save_game() else "保存失败")], ["读取", func(): _load_game()], ["退出", func(): get_tree().quit()]]:
+		var button := _button(str(spec[0]), true)
+		button.pressed.connect(spec[1])
+		box.add_child(button)
 
 func _map_marker_events() -> Array:
 	var result: Array = []
@@ -1458,6 +1763,32 @@ func _map_marker_events() -> Array:
 			result.append(event)
 	return result
 
+func _ensure_event_countdown_state() -> void:
+	if not GameState.world.has("event_countdowns") or not GameState.world.event_countdowns is Dictionary:
+		GameState.world.event_countdowns = {}
+
+func _sync_visible_event_countdowns() -> void:
+	_ensure_event_countdown_state()
+	var countdowns: Dictionary = GameState.world.event_countdowns
+	for event in _map_marker_events():
+		var event_id := str(event.get("id", ""))
+		if event_id.is_empty() or GameState.world.visited.has(event_id):
+			countdowns.erase(event_id)
+			continue
+		var days := int(event.get("countdown_days", 0))
+		if days <= 0:
+			countdowns.erase(event_id)
+			continue
+		if not countdowns.has(event_id):
+			countdowns[event_id] = days
+
+func _event_countdown_remaining(event: Dictionary) -> int:
+	_ensure_event_countdown_state()
+	var event_id := str(event.get("id", ""))
+	if event_id.is_empty() or not GameState.world.event_countdowns.has(event_id):
+		return 0
+	return int(GameState.world.event_countdowns[event_id])
+
 func _map_service_markers() -> Array:
 	var result: Array = []
 	if _location_unlocked("黑帆酒馆"):
@@ -1466,7 +1797,7 @@ func _map_service_markers() -> Array:
 		result.append({"id":"shop", "title":"雾港杂货商", "location":"雾港广场", "icon":"商", "position":Vector2(555, 195), "color":Color("f1cf74"), "callback":show_shop})
 	return result
 
-func _make_map_service_marker(service: Dictionary) -> Button:
+func _make_map_service_marker(service: Dictionary, map_layer: Control) -> Button:
 	var marker := Button.new()
 	marker.text = str(service.get("icon", "•"))
 	marker.tooltip_text = "%s\n%s · 设施入口\n点击进入" % [service.get("title", ""), service.get("location", "")]
@@ -1478,16 +1809,22 @@ func _make_map_service_marker(service: Dictionary) -> Button:
 	marker.add_theme_stylebox_override("pressed", _box(marker_color.darkened(0.12), 21, 1))
 	marker.add_theme_color_override("font_color", Color("07151a"))
 	var callback: Callable = service.get("callback", show_map)
-	marker.pressed.connect(callback)
+	marker.pressed.connect(func(): _zoom_map_to_marker_then(map_layer, marker, callback))
 	return marker
 
-func _make_map_marker(event: Dictionary) -> Button:
+func _make_map_marker(event: Dictionary, map_layer: Control) -> Button:
 	var marker := Button.new()
 	var icon := _map_marker_icon(event)
 	marker.text = icon
 	marker.tooltip_text = "%s\n%s · %s\n点击进入" % [event.get("title", event.get("id", "")), event.get("location", ""), _map_marker_kind(event)]
 	marker.custom_minimum_size = Vector2(42, 42)
 	marker.add_theme_font_size_override("font_size", 22)
+	var remaining_days := _event_countdown_remaining(event)
+	if remaining_days > 0:
+		marker.text = "%s\n%d天" % [icon, remaining_days]
+		marker.tooltip_text += "\n倒计时：剩余%d天" % remaining_days
+		marker.custom_minimum_size = Vector2(50, 50)
+		marker.add_theme_font_size_override("font_size", 16)
 	var marker_color := _map_marker_color(event)
 	marker.add_theme_stylebox_override("normal", _box(marker_color, 21, 1))
 	marker.add_theme_stylebox_override("hover", _box(marker_color.lightened(0.16), 21, 1))
@@ -1495,8 +1832,52 @@ func _make_map_marker(event: Dictionary) -> Button:
 	marker.add_theme_color_override("font_color", Color("07151a"))
 	marker.disabled = int(GameState.world.action_points) < int(event.get("action_cost", 1))
 	var event_id := str(event.id)
-	marker.pressed.connect(func(): _start_event(event_id))
+	marker.pressed.connect(func(): _zoom_map_to_marker_then(map_layer, marker, func(): _start_event(event_id)))
 	return marker
+
+func _zoom_map_to_marker_then(map_layer: Control, marker: Control, callback: Callable) -> void:
+	if map_layer == null or marker == null or not is_instance_valid(map_layer) or not is_instance_valid(marker):
+		callback.call()
+		return
+	if bool(map_layer.get_meta("zooming", false)):
+		return
+	map_layer.set_meta("zooming", true)
+	var canvas_size := _map_canvas_size(map_layer)
+	var target_scale := Vector2(MAP_CLICK_ZOOM_SCALE, MAP_CLICK_ZOOM_SCALE)
+	var target_position := _map_focus_position(_map_marker_center(marker), canvas_size, MAP_CLICK_ZOOM_SCALE)
+	var transition_shade := map_layer.get_meta("transition_shade", null) as ColorRect
+	if transition_shade != null and is_instance_valid(transition_shade):
+		transition_shade.color = Color(0.03, 0.06, 0.1, 0.0)
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(map_layer, "scale", target_scale, MAP_CLICK_ZOOM_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(map_layer, "position", target_position, MAP_CLICK_ZOOM_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if transition_shade != null and is_instance_valid(transition_shade):
+		tween.tween_property(transition_shade, "color", Color(0.03, 0.06, 0.1, MAP_CLICK_FADE_ALPHA), MAP_CLICK_ZOOM_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	await tween.finished
+	if is_instance_valid(map_layer):
+		map_layer.set_meta("zooming", false)
+	callback.call()
+
+func _map_canvas_size(map_layer: Control) -> Vector2:
+	var canvas := map_layer.get_parent() as Control
+	var canvas_size := canvas.size if canvas != null else MAP_CANVAS_FALLBACK_SIZE
+	if canvas_size.x <= 0.0 or canvas_size.y <= 0.0:
+		return MAP_CANVAS_FALLBACK_SIZE
+	return canvas_size
+
+func _map_marker_center(marker: Control) -> Vector2:
+	var marker_size := marker.size
+	if marker_size.x <= 0.0 or marker_size.y <= 0.0:
+		marker_size = marker.custom_minimum_size
+	return marker.position + marker_size * 0.5
+
+func _map_focus_position(focus: Vector2, canvas_size: Vector2, zoom_scale: float) -> Vector2:
+	var target_position := canvas_size * 0.5 - focus * zoom_scale
+	var min_position := canvas_size - canvas_size * zoom_scale
+	target_position.x = clampf(target_position.x, min_position.x, 0.0)
+	target_position.y = clampf(target_position.y, min_position.y, 0.0)
+	return target_position
 
 func _map_marker_icon(event: Dictionary) -> String:
 	if bool(event.get("repeatable", false)):
@@ -2079,7 +2460,7 @@ func _build_map_point_picker() -> PanelContainer:
 	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map_point_picker_canvas = Control.new()
 	map_point_picker_canvas.clip_contents = true
-	map_point_picker_canvas.custom_minimum_size = Vector2(980, 300)
+	map_point_picker_canvas.custom_minimum_size = MAP_CANVAS_FALLBACK_SIZE
 	map_point_picker_canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map_point_picker_canvas.mouse_filter = Control.MOUSE_FILTER_STOP
 	map_point_picker_canvas.gui_input.connect(_on_map_point_picker_input)
@@ -2319,6 +2700,15 @@ func _build_event_editor(tabs: TabContainer) -> void:
 	editor_action_cost.max_value = 3
 	editor_action_cost.value = 1
 	form.add_child(editor_action_cost)
+	form.add_child(_muted("地图倒计时天数（0表示不开启）"))
+	editor_countdown_days = SpinBox.new()
+	editor_countdown_days.min_value = 0
+	editor_countdown_days.max_value = 99
+	editor_countdown_days.value = 0
+	form.add_child(editor_countdown_days)
+	form.add_child(_muted("倒计时结束后自动触发的事件"))
+	editor_timeout_event = OptionButton.new()
+	form.add_child(editor_timeout_event)
 	form.add_child(_muted("正文/设计说明"))
 	editor_text = TextEdit.new()
 	editor_text.custom_minimum_size.y = 130
@@ -2443,6 +2833,8 @@ func _refresh_event_option_pickers() -> void:
 		return
 	for picker in [editor_option_next, editor_option_success, editor_option_failure]:
 		_populate_event_target_picker(picker)
+	if editor_timeout_event != null:
+		_populate_event_target_picker(editor_timeout_event)
 	for picker in [editor_option_resource, editor_option_item]:
 		_populate_option_item_picker(picker)
 
@@ -2564,7 +2956,10 @@ func _remove_editor_option() -> void:
 		_select_editor_option(selected_editor_option_index)
 
 func _event_from_editor_fields() -> Dictionary:
-	return {"type":editor_type.get_item_text(editor_type.selected), "location":editor_location.get_item_text(editor_location.selected), "locked":editor_lock.button_pressed, "draft":editor_draft.button_pressed, "prerequisites":editor_prerequisites.text.split(","), "flow_mode":editor_flow_mode.get_item_metadata(editor_flow_mode.selected), "action_cost":int(editor_action_cost.value), "text":editor_text.text, "options":editor_options}
+	var timeout_event := ""
+	if editor_timeout_event != null and editor_timeout_event.item_count > 0:
+		timeout_event = str(editor_timeout_event.get_item_metadata(editor_timeout_event.selected))
+	return {"type":editor_type.get_item_text(editor_type.selected), "location":editor_location.get_item_text(editor_location.selected), "locked":editor_lock.button_pressed, "draft":editor_draft.button_pressed, "prerequisites":editor_prerequisites.text.split(","), "flow_mode":editor_flow_mode.get_item_metadata(editor_flow_mode.selected), "action_cost":int(editor_action_cost.value), "countdown_days":int(editor_countdown_days.value) if editor_countdown_days != null else 0, "timeout_event":timeout_event, "text":editor_text.text, "options":editor_options}
 
 func _refresh_event_preview(event) -> void:
 	for child in editor_preview.get_children():
@@ -2613,6 +3008,10 @@ func _new_custom_event() -> void:
 	editor_draft.button_pressed = false
 	editor_ends_continuous.button_pressed = false
 	editor_action_cost.value = 1
+	if editor_countdown_days != null:
+		editor_countdown_days.value = 0
+	if editor_timeout_event != null:
+		_select_picker_metadata(editor_timeout_event, "")
 	editor_text.text = ""
 	_set_event_options_form({"options":[{"text":"返回地图", "action":"open_map"}]})
 	_refresh_event_preview({"type":"剧情事件", "location":"雾港码头", "locked":false, "text":"新对话节点", "options":editor_options})
@@ -2655,6 +3054,10 @@ func _set_event_schedule_form(event: Dictionary) -> void:
 	editor_draft.button_pressed = bool(event.get("draft", false))
 	editor_ends_continuous.button_pressed = bool(event.get("ends_continuous", false))
 	editor_action_cost.value = int(event.get("action_cost", 1))
+	if editor_countdown_days != null:
+		editor_countdown_days.value = int(event.get("countdown_days", 0))
+	if editor_timeout_event != null:
+		_select_picker_metadata(editor_timeout_event, str(event.get("timeout_event", "")))
 
 func _valid_event_id(event_id: String) -> bool:
 	if event_id.is_empty():
@@ -2707,6 +3110,8 @@ func _save_editor_event() -> void:
 	var incomplete_notes := _import_event_incomplete_notes({"location":editor_location.get_item_text(editor_location.selected), "background_image":editor_background_path.text, "music":editor_music_path.text})
 	var draft := editor_draft.button_pressed or not incomplete_notes.is_empty()
 	var entry := {"id":event_id, "name":editor_name.text.strip_edges(), "title":editor_name.text.strip_edges(), "chapter":"自定义事件", "speaker":"旁白", "type":editor_type.get_item_text(editor_type.selected), "location":editor_location.get_item_text(editor_location.selected), "background_image":editor_background_path.text, "music":editor_music_path.text, "locked":editor_lock.button_pressed, "draft":draft, "import_notes":incomplete_notes if draft else "", "prerequisites":prerequisites, "prerequisite_mode":editor_prerequisite_mode.get_item_metadata(editor_prerequisite_mode.selected), "flow_mode":editor_flow_mode.get_item_metadata(editor_flow_mode.selected), "repeatable":editor_repeatable.button_pressed, "action_cost":int(editor_action_cost.value), "ends_continuous":editor_ends_continuous.button_pressed, "text":editor_text.text, "options":saved_options}
+	entry.countdown_days = int(editor_countdown_days.value) if editor_countdown_days != null else 0
+	entry.timeout_event = str(editor_timeout_event.get_item_metadata(editor_timeout_event.selected)) if editor_timeout_event != null and editor_timeout_event.item_count > 0 else ""
 	if custom_index >= 0 and custom_index < GameState.custom_content.events.size():
 		GameState.custom_content.events[custom_index] = entry
 	else:
