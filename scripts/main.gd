@@ -108,6 +108,9 @@ var current_map_music_path := ""
 var current_event_music_path := ""
 var map_marker_count := 0
 var map_menu_overlay: Control
+var last_map_focus_position := Vector2.ZERO
+var last_map_canvas_size := Vector2(980, 300)
+var has_map_focus := false
 var selected_map_point_index := -1
 var draft_map_point_position := Vector2(480, 150)
 
@@ -905,34 +908,51 @@ func show_inn() -> void:
 		return
 	current_view = "inn"
 	_clear_view()
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 14)
-	content_root.add_child(root)
-	root.add_child(_heading("黑帆旅馆", 30))
-	root.add_child(_muted("在旅馆休息会推进一天、恢复行动点，并结算饱腹消耗。也可以用采集到的材料调配补给。"))
+	var root := _facility_overlay_root("黑帆旅馆", "热汤、铺位和临时药台都挤在这间临海旅馆里。", _service_focus_position("inn"), Vector2(980, 520))
+	var top_row := HBoxContainer.new()
+	top_row.add_theme_constant_override("separation", 18)
+	root.add_child(top_row)
+	var intro := _facility_card("黑帆旅馆", "热汤、铺位和临时药台都挤在这间临海旅馆里。")
+	intro.custom_minimum_size = Vector2(430, 120)
+	top_row.add_child(intro)
+	var intro_box := intro.get_child(0) as VBoxContainer
+	intro_box.add_child(_muted("雾历 %s  ·  行动 %d/%d  ·  饱腹 %d/%d" % [GameState.date_text().replace("雾历 ", ""), int(GameState.world.action_points), int(GameState.world.max_action_points), int(GameState.player.satiety), int(GameState.player.max_satiety)]))
+	var top_spacer := Control.new()
+	top_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_row.add_child(top_spacer)
+	var stock := _facility_card("可用材料", "药草 %d  /  残骸 %d" % [int(GameState.player.inventory.get("item.herb", 0)), int(GameState.player.inventory.get("item.salvage", 0))])
+	stock.custom_minimum_size = Vector2(280, 120)
+	top_row.add_child(stock)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 18)
+	row.add_theme_constant_override("separation", 26)
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(row)
-	var rest_card := _panel_container()
+	var rest_card := _facility_card("留宿休息", "推进一天，恢复行动点，并结算饱腹消耗。")
+	rest_card.custom_minimum_size = Vector2(420, 230)
 	rest_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(rest_card)
-	var rest_box := VBoxContainer.new()
-	rest_box.add_theme_constant_override("separation", 10)
-	rest_card.add_child(rest_box)
-	rest_box.add_child(_heading("留宿休息", 22))
-	rest_box.add_child(_muted("%s\n行动：%d/%d  饱腹：%d/%d" % [GameState.date_text(), int(GameState.world.action_points), int(GameState.world.max_action_points), int(GameState.player.satiety), int(GameState.player.max_satiety)]))
-	var rest := _button("休息到明天", true)
+	var rest_box := rest_card.get_child(0) as VBoxContainer
+	rest_box.add_child(_facility_rule_line("每次休息  -20 饱腹  /  行动恢复至上限"))
+	rest_box.add_child(_muted("当前行动：%d/%d\n当前饱腹：%d/%d" % [int(GameState.world.action_points), int(GameState.world.max_action_points), int(GameState.player.satiety), int(GameState.player.max_satiety)]))
+	var rest_spacer := Control.new()
+	rest_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rest_box.add_child(rest_spacer)
+	var rest := _outline_button("休息到明天")
+	rest.custom_minimum_size = Vector2(250, 34)
 	rest.pressed.connect(rest_day)
 	rest_box.add_child(rest)
-	var craft_card := _panel_container()
+	var craft_card := _facility_card("调配补给", "用采集到的材料制作路上能用的药剂和口粮。")
+	craft_card.custom_minimum_size = Vector2(420, 230)
 	craft_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(craft_card)
-	var craft_box := VBoxContainer.new()
-	craft_box.add_theme_constant_override("separation", 10)
-	craft_card.add_child(craft_box)
-	craft_box.add_child(_heading("调配补给", 22))
-	craft_box.add_child(_muted("药草：%d  残骸：%d" % [int(GameState.player.inventory.get("item.herb", 0)), int(GameState.player.inventory.get("item.salvage", 0))]))
-	var craft_tonic := _button("调配提神药剂")
+	var craft_box := craft_card.get_child(0) as VBoxContainer
+	craft_box.add_child(_facility_rule_line("药草 x2  →  提神药剂"))
+	craft_box.add_child(_facility_rule_line("药草 x1 + 残骸 x1  →  旅行口粮"))
+	var craft_spacer := Control.new()
+	craft_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	craft_box.add_child(craft_spacer)
+	var craft_tonic := _outline_button("调配提神药剂")
+	craft_tonic.custom_minimum_size = Vector2(250, 34)
 	craft_tonic.disabled = not GameState.has_item("item.herb", 2)
 	craft_tonic.pressed.connect(func():
 		if GameState.craft_item("item.tonic"):
@@ -940,7 +960,8 @@ func show_inn() -> void:
 			show_inn()
 	)
 	craft_box.add_child(craft_tonic)
-	var craft_ration := _button("整理旅行口粮")
+	var craft_ration := _outline_button("整理旅行口粮")
+	craft_ration.custom_minimum_size = Vector2(250, 34)
 	craft_ration.disabled = not (GameState.has_item("item.salvage") and GameState.has_item("item.herb"))
 	craft_ration.pressed.connect(func():
 		if GameState.craft_item("item.ration"):
@@ -948,8 +969,9 @@ func show_inn() -> void:
 			show_inn()
 	)
 	craft_box.add_child(craft_ration)
-	var back := _button("返回地图", true)
-	back.pressed.connect(show_map)
+	var back := _outline_button("返回地图")
+	back.custom_minimum_size = Vector2(260, 34)
+	back.pressed.connect(func(): _return_from_facility_to_map(root))
 	root.add_child(back)
 
 func show_shop() -> void:
@@ -957,27 +979,41 @@ func show_shop() -> void:
 		return
 	current_view = "shop"
 	_clear_view()
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 14)
-	content_root.add_child(root)
-	root.add_child(_heading("雾港杂货商", 30))
-	root.add_child(_muted("在商店出售换金道具。背包仍只负责查看、食用和装备。"))
-	var card := _panel_container()
+	var root := _facility_overlay_root("雾港杂货商", "柜台后堆着麻袋、旧灯油和等价换银的小物件。", _service_focus_position("shop"), Vector2(920, 500))
+	var top_row := HBoxContainer.new()
+	top_row.add_theme_constant_override("separation", 18)
+	root.add_child(top_row)
+	var intro := _facility_card("雾港杂货商", "柜台后堆着麻袋、旧灯油和等价换银的小物件。")
+	intro.custom_minimum_size = Vector2(430, 120)
+	top_row.add_child(intro)
+	var intro_box := intro.get_child(0) as VBoxContainer
+	intro_box.add_child(_muted("银币 %d  ·  只收换金道具" % int(GameState.player.get("coins", 0))))
+	var top_spacer := Control.new()
+	top_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_row.add_child(top_spacer)
+	var wallet := _facility_card("交易规则", "按 sell_price、price 或默认换金价格结算。")
+	wallet.custom_minimum_size = Vector2(320, 120)
+	top_row.add_child(wallet)
+	var card := _facility_card("出售", "背包中可出售的物品会显示在这里。")
+	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(card)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
-	card.add_child(box)
+	var box := card.get_child(0) as VBoxContainer
 	_rebuild_shop_sell_list(box)
-	var back := _button("返回地图", true)
-	back.pressed.connect(show_map)
+	var back := _outline_button("返回地图")
+	back.custom_minimum_size = Vector2(260, 34)
+	back.pressed.connect(func(): _return_from_facility_to_map(root))
 	root.add_child(back)
 
 func _rebuild_shop_sell_list(box: VBoxContainer) -> void:
 	for child in box.get_children():
 		box.remove_child(child)
 		child.queue_free()
-	box.add_child(_heading("出售", 22))
-	box.add_child(_muted("银币：%d" % int(GameState.player.get("coins", 0))))
+	var title := _heading("出售", 23)
+	title.add_theme_color_override("font_color", Color(0.9, 0.96, 0.93, 1.0))
+	box.add_child(title)
+	var note := _muted("背包中可出售的物品会显示在这里。")
+	note.add_theme_color_override("font_color", Color(0.78, 0.86, 0.82, 1.0))
+	box.add_child(note)
 	var sellable_items := _sellable_inventory_items()
 	if sellable_items.is_empty():
 		box.add_child(_muted("背包里暂时没有可出售的换金道具。"))
@@ -987,7 +1023,7 @@ func _rebuild_shop_sell_list(box: VBoxContainer) -> void:
 		var item_name := str(entry.get("name", item_id))
 		var quantity := int(entry.get("quantity", 0))
 		var price := int(entry.get("price", 0))
-		var sell_button := _button("%s x%d  ·  出售 1 个（%d银币）" % [item_name, quantity, price], true)
+		var sell_button := _outline_button("%s x%d    出售 1 个 / %d银币" % [item_name, quantity, price])
 		sell_button.disabled = quantity <= 0 or price <= 0
 		sell_button.pressed.connect(func():
 			if GameState.sell_item(item_id, 1, price):
@@ -1026,6 +1062,212 @@ func _sell_price_for_item(definition: Dictionary) -> int:
 	if str(definition.get("type", "")) == "换金道具":
 		return 1
 	return 0
+
+func _facility_overlay_root(title_text: String, subtitle: String, fallback_focus: Vector2, panel_size := Vector2(940, 500)) -> VBoxContainer:
+	var screen := Control.new()
+	screen.clip_contents = true
+	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	screen.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content_root.add_child(screen)
+	var map_layer := _add_facility_map_background(screen, fallback_focus)
+	var vignette := ColorRect.new()
+	vignette.color = Color(0.02, 0.04, 0.07, 0.24)
+	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	screen.add_child(vignette)
+	var panel_container := MarginContainer.new()
+	panel_container.anchor_left = 0.5
+	panel_container.anchor_right = 0.5
+	panel_container.anchor_top = 0.5
+	panel_container.anchor_bottom = 0.5
+	panel_container.offset_left = -panel_size.x * 0.5
+	panel_container.offset_right = panel_size.x * 0.5
+	panel_container.offset_top = -panel_size.y * 0.5
+	panel_container.offset_bottom = panel_size.y * 0.5
+	panel_container.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel_container.add_theme_constant_override("margin_left", 0)
+	panel_container.add_theme_constant_override("margin_right", 0)
+	panel_container.add_theme_constant_override("margin_top", 0)
+	panel_container.add_theme_constant_override("margin_bottom", 0)
+	screen.add_child(panel_container)
+	screen.set_meta("facility_map_layer", map_layer)
+	screen.set_meta("facility_vignette", vignette)
+	screen.set_meta("facility_panel", panel_container)
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 18)
+	panel_container.add_child(root)
+	return root
+
+func _add_facility_map_background(parent: Control, fallback_focus: Vector2) -> Control:
+	var map_texture := _texture_from_path(str(GameState.custom_content.get("map_background", "")), DEFAULT_MAP_IMAGE)
+	if map_texture == null:
+		return null
+	var map_layer := Control.new()
+	map_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(map_layer)
+	var map_view := TextureRect.new()
+	map_view.texture = map_texture
+	map_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	map_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	map_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_layer.add_child(map_view)
+	var canvas_size := last_map_canvas_size if has_map_focus else MAP_CANVAS_FALLBACK_SIZE
+	if canvas_size.x <= 0.0 or canvas_size.y <= 0.0:
+		canvas_size = MAP_CANVAS_FALLBACK_SIZE
+	var focus := last_map_focus_position if has_map_focus else fallback_focus
+	map_layer.scale = Vector2(MAP_CLICK_ZOOM_SCALE, MAP_CLICK_ZOOM_SCALE)
+	map_layer.position = _map_focus_position(focus, canvas_size, MAP_CLICK_ZOOM_SCALE)
+	var haze := ColorRect.new()
+	haze.color = Color(0.04, 0.08, 0.11, 0.24)
+	haze.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	haze.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(haze)
+	parent.set_meta("facility_haze", haze)
+	return map_layer
+
+func _return_from_facility_to_map(root: Control) -> void:
+	var panel := root.get_parent() as Control
+	var screen := panel.get_parent() as Control if panel != null else null
+	if screen == null or not is_instance_valid(screen):
+		show_map()
+		return
+	_activate_map_music()
+	current_view = "map"
+	has_map_focus = false
+	_sync_visible_event_countdowns()
+	var map_root := _create_map_root()
+	content_root.move_child(map_root, screen.get_index())
+	screen.mouse_filter = Control.MOUSE_FILTER_STOP
+	var map_layer := screen.get_meta("facility_map_layer", null) as Control
+	var vignette := screen.get_meta("facility_vignette", null) as CanvasItem
+	var haze := screen.get_meta("facility_haze", null) as CanvasItem
+	var facility_panel := screen.get_meta("facility_panel", null) as CanvasItem
+	var tween := create_tween()
+	tween.set_parallel(true)
+	if map_layer != null and is_instance_valid(map_layer):
+		tween.tween_property(map_layer, "scale", Vector2.ONE, MAP_CLICK_ZOOM_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tween.tween_property(map_layer, "position", Vector2.ZERO, MAP_CLICK_ZOOM_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if facility_panel != null and is_instance_valid(facility_panel):
+		tween.tween_property(facility_panel, "modulate:a", 0.0, MAP_CLICK_ZOOM_DURATION * 0.72).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	if vignette != null and is_instance_valid(vignette):
+		tween.tween_property(vignette, "modulate:a", 0.0, MAP_CLICK_ZOOM_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	if haze != null and is_instance_valid(haze):
+		tween.tween_property(haze, "modulate:a", 0.0, MAP_CLICK_ZOOM_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	await tween.finished
+	if is_instance_valid(screen):
+		screen.queue_free()
+
+func _facility_status_strip() -> PanelContainer:
+	var strip := _facility_frame(Color(0.03, 0.06, 0.09, 0.28), Color(1, 1, 1, 0.5))
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 16)
+	strip.add_child(row)
+	for text in [
+		GameState.date_text(),
+		"行动 %d/%d" % [int(GameState.world.action_points), int(GameState.world.max_action_points)],
+		"饱腹 %d/%d" % [int(GameState.player.satiety), int(GameState.player.max_satiety)],
+		"银币 %d" % int(GameState.player.get("coins", 0))
+	]:
+		var label := _muted(str(text))
+		label.add_theme_color_override("font_color", text_main)
+		row.add_child(label)
+	return strip
+
+func _facility_card(title_text: String, subtitle: String) -> PanelContainer:
+	var card := _facility_frame(Color(0.04, 0.11, 0.09, 0.68), Color(1, 1, 1, 0.5))
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	card.add_child(box)
+	var title := _heading(title_text, 23)
+	title.add_theme_color_override("font_color", Color(0.9, 0.96, 0.93, 1.0))
+	box.add_child(title)
+	var subtitle_label := _muted(subtitle)
+	subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	subtitle_label.add_theme_color_override("font_color", Color(0.78, 0.86, 0.82, 1.0))
+	box.add_child(subtitle_label)
+	return card
+
+func _facility_frame(fill: Color, border_color: Color) -> PanelContainer:
+	var frame := PanelContainer.new()
+	var style := _box(fill, 0, 1)
+	style.border_color = border_color
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 12
+	style.content_margin_bottom = 12
+	frame.add_theme_stylebox_override("panel", style)
+	return frame
+
+func _outline_button(label: String) -> Button:
+	var button := Button.new()
+	button.text = label
+	button.custom_minimum_size = Vector2(180, 34)
+	button.add_theme_font_size_override("font_size", 15)
+	button.add_theme_color_override("font_color", Color(0.92, 0.97, 0.95, 1.0))
+	button.add_theme_color_override("font_disabled_color", Color(0.92, 0.97, 0.95, 0.38))
+	button.add_theme_stylebox_override("normal", _outline_box(Color(1, 1, 1, 0.72), Color(1, 1, 1, 0.04)))
+	button.add_theme_stylebox_override("hover", _outline_box(Color(1, 1, 1, 0.95), Color(1, 1, 1, 0.12)))
+	button.add_theme_stylebox_override("pressed", _outline_box(accent, Color(accent, 0.18)))
+	button.add_theme_stylebox_override("disabled", _outline_box(Color(1, 1, 1, 0.26), Color(0, 0, 0, 0.08)))
+	return button
+
+func _outline_box(border_color: Color, fill: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.border_width_left = 1
+	style.border_width_right = 1
+	style.border_width_top = 1
+	style.border_width_bottom = 1
+	style.border_color = border_color
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	return style
+
+func _facility_rule_line(text: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 15)
+	label.add_theme_color_override("font_color", Color(0.92, 0.97, 0.95, 0.9))
+	label.add_theme_stylebox_override("normal", _outline_box(Color(1, 1, 1, 0.58), Color(0, 0, 0, 0.08)))
+	label.custom_minimum_size = Vector2(0, 28)
+	return label
+
+func _map_hud_box(fill: Color, border_color: Color) -> StyleBoxFlat:
+	var style := _outline_box(border_color, fill)
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 12
+	style.content_margin_bottom = 12
+	return style
+
+func _map_hud_card(title_text: String, subtitle: String) -> PanelContainer:
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", _map_hud_box(Color(0.04, 0.1, 0.09, 0.52), Color(1, 1, 1, 0.42)))
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	card.add_child(box)
+	var title := _heading(title_text, 20)
+	title.add_theme_color_override("font_color", Color(0.92, 0.97, 0.95, 1.0))
+	box.add_child(title)
+	if not subtitle.is_empty():
+		var subtitle_label := _muted(subtitle)
+		subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		subtitle_label.add_theme_color_override("font_color", Color(0.78, 0.86, 0.82, 1.0))
+		box.add_child(subtitle_label)
+	return card
+
+func _service_focus_position(service_id: String) -> Vector2:
+	for service in _map_service_markers():
+		if str(service.get("id", "")) == service_id:
+			return service.get("position", MAP_CANVAS_FALLBACK_SIZE * 0.5)
+	return MAP_CANVAS_FALLBACK_SIZE * 0.5
 
 func _all_equipment() -> Array:
 	return content_library.all_equipment()
@@ -1477,8 +1719,12 @@ func show_map() -> void:
 		return
 	_activate_map_music()
 	current_view = "map"
+	has_map_focus = false
 	_clear_view()
 	_sync_visible_event_countdowns()
+	_create_map_root()
+
+func _create_map_root() -> Control:
 	var root := Control.new()
 	root.clip_contents = true
 	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1487,10 +1733,17 @@ func show_map() -> void:
 	var map_texture := _texture_from_path(GameState.custom_content.get("map_background", ""), DEFAULT_MAP_IMAGE)
 	_build_map_event_canvas(root, map_texture)
 	_build_map_bottom_menu(root)
+	return root
 
 func _build_map_event_canvas(root: Control, map_texture: Texture2D) -> void:
 	map_marker_count = 0
-	var canvas_panel := _panel_container(Color("101724"))
+	var canvas_panel := PanelContainer.new()
+	var canvas_style := _box(Color("101724"))
+	canvas_style.content_margin_left = 0
+	canvas_style.content_margin_right = 0
+	canvas_style.content_margin_top = 0
+	canvas_style.content_margin_bottom = 0
+	canvas_panel.add_theme_stylebox_override("panel", canvas_style)
 	canvas_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	canvas_panel.custom_minimum_size = Vector2(0, 0)
 	canvas_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1564,15 +1817,15 @@ func _build_map_bottom_menu(root: Control) -> void:
 	menu_panel.offset_top = -68
 	menu_panel.offset_bottom = -14
 	menu_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	menu_panel.add_theme_stylebox_override("panel", _box(Color(0.06, 0.09, 0.14, 0.88), 8, 0))
+	menu_panel.add_theme_stylebox_override("panel", _map_hud_box(Color(0.03, 0.07, 0.08, 0.58), Color(1, 1, 1, 0.46)))
 	root.add_child(menu_panel)
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 10)
 	menu_panel.add_child(row)
 	for spec in [["个人属性", _show_map_profile_panel], ["背包", _show_map_bag_panel], ["好感度", _show_map_relations_panel], ["系统", _show_map_system_panel]]:
-		var button := _button(str(spec[0]), true)
-		button.custom_minimum_size = Vector2(118, 40)
+		var button := _outline_button(str(spec[0]))
+		button.custom_minimum_size = Vector2(118, 34)
 		button.pressed.connect(spec[1])
 		row.add_child(button)
 
@@ -1593,53 +1846,68 @@ func _map_overlay_panel(title_text: String, size: Vector2 = Vector2(760, 430)) -
 	panel_container.offset_right = size.x * 0.5
 	panel_container.offset_top = -size.y - 84
 	panel_container.offset_bottom = -84
+	panel_container.clip_contents = true
 	panel_container.mouse_filter = Control.MOUSE_FILTER_STOP
-	panel_container.add_theme_stylebox_override("panel", _box(Color(0.08, 0.12, 0.18, 0.94), 8, 1))
+	panel_container.add_theme_stylebox_override("panel", _map_hud_box(Color(0.04, 0.1, 0.09, 0.66), Color(1, 1, 1, 0.52)))
 	map_menu_overlay.add_child(panel_container)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
+	box.add_theme_constant_override("separation", 10)
 	panel_container.add_child(box)
 	var header := HBoxContainer.new()
 	header.add_theme_constant_override("separation", 10)
 	box.add_child(header)
-	header.add_child(_heading(title_text, 24))
+	var title := _heading(title_text, 24)
+	title.add_theme_color_override("font_color", Color(0.92, 0.97, 0.95, 1.0))
+	header.add_child(title)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(spacer)
-	var close := _button("关闭")
-	close.custom_minimum_size = Vector2(74, 34)
+	var close := _outline_button("关闭")
+	close.custom_minimum_size = Vector2(88, 30)
 	close.pressed.connect(_clear_map_menu_overlay)
 	header.add_child(close)
 	return box
 
 func _show_map_profile_panel() -> void:
-	var box := _map_overlay_panel("个人属性", Vector2(760, 340))
+	var box := _map_overlay_panel("个人属性", Vector2(860, 430))
 	var content := HBoxContainer.new()
-	content.add_theme_constant_override("separation", 18)
+	content.add_theme_constant_override("separation", 16)
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(content)
+	var portrait_card := _map_hud_card("主角", "当前生命 %d/%d  ·  饱腹 %d/%d" % [int(GameState.player.hp), _effective_combat("生命"), int(GameState.player.satiety), int(GameState.player.max_satiety)])
+	portrait_card.custom_minimum_size = Vector2(245, 330)
+	content.add_child(portrait_card)
+	var portrait_box := portrait_card.get_child(0) as VBoxContainer
 	var portrait := TextureRect.new()
 	portrait.texture = _player_portrait_texture()
-	portrait.custom_minimum_size = Vector2(220, 260)
+	portrait.custom_minimum_size = Vector2(210, 245)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	content.add_child(portrait)
-	var stats := VBoxContainer.new()
-	stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stats.add_theme_constant_override("separation", 12)
-	content.add_child(stats)
-	stats.add_child(_heading("叙事五维", 20))
-	stats.add_child(_map_stat_grid(ContentSchema.CHECK_STATS, true))
-	stats.add_child(_heading("战斗五维", 20))
-	stats.add_child(_map_stat_grid(ContentSchema.COMBAT_STATS, false))
+	portrait_box.add_child(portrait)
+	var stat_column := VBoxContainer.new()
+	stat_column.add_theme_constant_override("separation", 12)
+	stat_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stat_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(stat_column)
+	var narrative_card := _map_hud_card("叙事五维", "调查、交涉和剧情检定使用。")
+	narrative_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	narrative_card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stat_column.add_child(narrative_card)
+	(narrative_card.get_child(0) as VBoxContainer).add_child(_map_stat_grid(ContentSchema.CHECK_STATS, true))
+	var combat_card := _map_hud_card("战斗五维", "命中、防御和生存能力使用。")
+	combat_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	combat_card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stat_column.add_child(combat_card)
+	(combat_card.get_child(0) as VBoxContainer).add_child(_map_stat_grid(ContentSchema.COMBAT_STATS, false))
 
 func _map_stat_grid(stat_names: Array, check_stats := true) -> GridContainer:
 	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 12)
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 14)
 	grid.add_theme_constant_override("v_separation", 8)
 	for stat_name in stat_names:
 		var label := _muted(str(stat_name))
+		label.add_theme_color_override("font_color", Color(0.78, 0.86, 0.82, 1.0))
 		grid.add_child(label)
 		var value := Label.new()
 		value.text = str(_effective_check(str(stat_name)) if check_stats else _effective_combat(str(stat_name)))
@@ -1649,31 +1917,43 @@ func _map_stat_grid(stat_names: Array, check_stats := true) -> GridContainer:
 	return grid
 
 func _show_map_bag_panel() -> void:
-	var box := _map_overlay_panel("背包", Vector2(900, 340))
-	box.add_child(_muted("生命：%d/%d  ·  饱腹：%d/%d  ·  银币：%d" % [int(GameState.player.hp), _effective_combat("生命"), int(GameState.player.satiety), int(GameState.player.max_satiety), int(GameState.player.get("coins", 0))]))
+	var box := _map_overlay_panel("背包", Vector2(980, 430))
+	var status := _facility_rule_line("生命 %d/%d    饱腹 %d/%d    银币 %d" % [int(GameState.player.hp), _effective_combat("生命"), int(GameState.player.satiety), int(GameState.player.max_satiety), int(GameState.player.get("coins", 0))])
+	status.custom_minimum_size.y = 26
+	box.add_child(status)
 	var content := HBoxContainer.new()
-	content.add_theme_constant_override("separation", 18)
+	content.add_theme_constant_override("separation", 16)
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(content)
+	var equipment_card := _map_hud_card("装备", "点击已装备部位可以卸下。")
+	equipment_card.custom_minimum_size = Vector2(410, 0)
+	equipment_card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(equipment_card)
+	var equipment_box := equipment_card.get_child(0) as VBoxContainer
 	var equipment_grid := GridContainer.new()
 	equipment_grid.columns = 3
-	equipment_grid.custom_minimum_size.x = 390
-	equipment_grid.add_theme_constant_override("h_separation", 8)
-	equipment_grid.add_theme_constant_override("v_separation", 8)
-	content.add_child(equipment_grid)
+	equipment_grid.add_theme_constant_override("h_separation", 7)
+	equipment_grid.add_theme_constant_override("v_separation", 7)
+	equipment_box.add_child(equipment_grid)
 	for slot in ["", "头盔", "", "武器", "盔甲", "臂甲", "", "鞋子", "饰品"]:
 		if str(slot).is_empty():
 			var blank := Control.new()
-			blank.custom_minimum_size = Vector2(120, 82)
+			blank.custom_minimum_size = Vector2(112, 74)
 			equipment_grid.add_child(blank)
 		else:
 			equipment_grid.add_child(_map_equipment_slot_card(str(slot)))
+	var inventory_card := _map_hud_card("物品", "消耗品和装备可以直接使用。")
+	inventory_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inventory_card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(inventory_card)
+	var inventory_box := inventory_card.get_child(0) as VBoxContainer
 	var bag_scroll := ScrollContainer.new()
 	bag_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bag_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(bag_scroll)
+	inventory_box.add_child(bag_scroll)
 	var bag_list := VBoxContainer.new()
 	bag_list.add_theme_constant_override("separation", 8)
+	bag_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bag_scroll.add_child(bag_list)
 	if GameState.player.inventory.is_empty():
 		bag_list.add_child(_muted("背包为空。"))
@@ -1681,17 +1961,19 @@ func _show_map_bag_panel() -> void:
 		bag_list.add_child(_map_bag_item_row(str(item_id)))
 
 func _map_equipment_slot_card(slot: String) -> PanelContainer:
-	var card := _panel_container(panel_alt)
-	card.custom_minimum_size = Vector2(120, 96)
+	var card := _facility_frame(Color(0.05, 0.1, 0.12, 0.5), Color(1, 1, 1, 0.38))
+	card.custom_minimum_size = Vector2(112, 82)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
 	card.add_child(box)
 	box.add_child(_muted(slot))
 	var item_id = GameState.player.equipment.get(slot)
-	box.add_child(_heading("未装备" if item_id == null else _item_name(str(item_id)), 15))
+	var name := _heading("未装备" if item_id == null else _item_name(str(item_id)), 14)
+	name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(name)
 	if item_id != null:
-		var unequip := _button("卸下")
-		unequip.custom_minimum_size = Vector2(72, 30)
+		var unequip := _outline_button("卸下")
+		unequip.custom_minimum_size = Vector2(82, 26)
 		unequip.pressed.connect(func():
 			GameState.unequip_slot(slot)
 			GameState.player.hp = mini(int(GameState.player.hp), _effective_combat("生命"))
@@ -1702,8 +1984,9 @@ func _map_equipment_slot_card(slot: String) -> PanelContainer:
 
 func _map_bag_item_row(item_id: String) -> PanelContainer:
 	var definition := _find_content_item(item_id)
-	var row_card := _panel_container(panel_alt)
+	var row_card := _facility_frame(Color(0.05, 0.1, 0.12, 0.5), Color(1, 1, 1, 0.38))
 	row_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row_card.custom_minimum_size.y = 62
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row_card.add_child(row)
@@ -1711,11 +1994,13 @@ func _map_bag_item_row(item_id: String) -> PanelContainer:
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(info)
 	var kind: String = str(definition.get("slot", definition.get("type", "其他")))
-	info.add_child(_heading("%s x%d" % [definition.get("name", item_id), int(GameState.player.inventory[item_id])], 16))
+	var item_title := _heading("%s x%d" % [definition.get("name", item_id), int(GameState.player.inventory[item_id])], 16)
+	item_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.add_child(item_title)
 	info.add_child(_muted(kind))
 	if item_id == "item.ration":
-		var eat := _button("食用", true)
-		eat.custom_minimum_size = Vector2(72, 34)
+		var eat := _outline_button("食用")
+		eat.custom_minimum_size = Vector2(76, 30)
 		eat.pressed.connect(func():
 			if GameState.eat_ration():
 				_update_time_status()
@@ -1724,8 +2009,8 @@ func _map_bag_item_row(item_id: String) -> PanelContainer:
 		)
 		row.add_child(eat)
 	elif definition.has("slot"):
-		var equip := _button("装备", true)
-		equip.custom_minimum_size = Vector2(72, 34)
+		var equip := _outline_button("装备")
+		equip.custom_minimum_size = Vector2(76, 30)
 		equip.pressed.connect(func():
 			if GameState.equip_item(item_id, str(definition.slot)):
 				GameState.player.hp = mini(int(GameState.player.hp), _effective_combat("生命"))
@@ -1736,22 +2021,28 @@ func _map_bag_item_row(item_id: String) -> PanelContainer:
 	return row_card
 
 func _show_map_relations_panel() -> void:
-	var box := _map_overlay_panel("好感度", Vector2(560, 300))
+	var box := _map_overlay_panel("好感度", Vector2(620, 360))
+	var note := _facility_rule_line("从 0 起算，关键事件会改变关系值")
+	box.add_child(note)
 	var relations: Dictionary = GameState.world.get("relations", {})
 	for name in relations.keys():
 		var value := int(relations[name])
-		box.add_child(_heading("%s  %+d" % [name, value], 20))
+		var row_card := _map_hud_card("%s  %+d" % [name, value], "当前关系进度")
+		box.add_child(row_card)
+		var row_box := row_card.get_child(0) as VBoxContainer
 		var bar := ProgressBar.new()
 		bar.min_value = 0
 		bar.max_value = 10
 		bar.value = clampi(value, 0, 10)
-		bar.custom_minimum_size.y = 24
-		box.add_child(bar)
+		bar.custom_minimum_size.y = 20
+		row_box.add_child(bar)
 
 func _show_map_system_panel() -> void:
-	var box := _map_overlay_panel("系统", Vector2(420, 250))
+	var box := _map_overlay_panel("系统", Vector2(460, 300))
+	box.add_child(_facility_rule_line("保存、读取或退出当前原型"))
 	for spec in [["保存", func(): _toast("保存成功" if GameState.save_game() else "保存失败")], ["读取", func(): _load_game()], ["退出", func(): get_tree().quit()]]:
-		var button := _button(str(spec[0]), true)
+		var button := _outline_button(str(spec[0]))
+		button.custom_minimum_size = Vector2(220, 34)
 		button.pressed.connect(spec[1])
 		box.add_child(button)
 
@@ -1847,8 +2138,12 @@ func _zoom_map_to_marker_then(map_layer: Control, marker: Control, callback: Cal
 		return
 	map_layer.set_meta("zooming", true)
 	var canvas_size := _map_canvas_size(map_layer)
+	var focus_position := _map_marker_center(marker)
+	last_map_focus_position = focus_position
+	last_map_canvas_size = canvas_size
+	has_map_focus = true
 	var target_scale := Vector2(MAP_CLICK_ZOOM_SCALE, MAP_CLICK_ZOOM_SCALE)
-	var target_position := _map_focus_position(_map_marker_center(marker), canvas_size, MAP_CLICK_ZOOM_SCALE)
+	var target_position := _map_focus_position(focus_position, canvas_size, MAP_CLICK_ZOOM_SCALE)
 	var transition_shade := map_layer.get_meta("transition_shade", null) as ColorRect
 	if transition_shade != null and is_instance_valid(transition_shade):
 		transition_shade.color = Color(0.03, 0.06, 0.1, 0.0)
