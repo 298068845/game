@@ -1,62 +1,1905 @@
 {
   "characters": [
     {
-      "id":"char.linya","name":"林鸦","role":"失踪的档案员","tags":["盟友","学者"],
-      "check_stats":{"体魄":7,"洞察":13,"意志":11,"魅力":9,"学识":14},
-      "combat_stats":{"力量":6,"防御":8,"速度":11,"技巧":10,"生命":10},
-      "equipment":{"头盔":null,"盔甲":"equip.archive_coat","武器":"equip.signal_pistol","臂甲":null,"鞋子":null,"饰品":"equip.tide_charm"},
-      "inventory":{"item.tonic":1,"item.lens":1}
+      "id": "char.linya",
+      "name": "林鸦",
+      "role": "失踪的档案员",
+      "tags": [
+        "盟友",
+        "学者"
+      ],
+      "check_stats": {
+        "体魄": 7,
+        "洞察": 13,
+        "意志": 11,
+        "魅力": 9,
+        "学识": 14
+      },
+      "combat_stats": {
+        "力量": 6,
+        "防御": 8,
+        "速度": 11,
+        "技巧": 10,
+        "生命": 10
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": "equip.archive_coat",
+        "武器": "equip.signal_pistol",
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": "equip.tide_charm"
+      },
+      "inventory": {
+        "item.tonic": 1,
+        "item.lens": 1
+      }
     },
     {
-      "id":"char.old_qiao","name":"老乔","role":"灯塔守卫","tags":["线人","港民"],
-      "check_stats":{"体魄":10,"洞察":11,"意志":12,"魅力":8,"学识":9},
-      "combat_stats":{"力量":10,"防御":11,"速度":7,"技巧":8,"生命":14},
-      "equipment":{"头盔":"equip.watch_cap","盔甲":"equip.oilskin","武器":"equip.lantern_hook","臂甲":null,"鞋子":"equip.deck_boots","饰品":null},
-      "inventory":{"item.tonic":2}
+      "id": "char.old_qiao",
+      "name": "老乔",
+      "role": "灯塔守卫",
+      "tags": [
+        "线人",
+        "港民"
+      ],
+      "check_stats": {
+        "体魄": 10,
+        "洞察": 11,
+        "意志": 12,
+        "魅力": 8,
+        "学识": 9
+      },
+      "combat_stats": {
+        "力量": 10,
+        "防御": 11,
+        "速度": 7,
+        "技巧": 8,
+        "生命": 14
+      },
+      "equipment": {
+        "头盔": "equip.watch_cap",
+        "盔甲": "equip.oilskin",
+        "武器": "equip.lantern_hook",
+        "臂甲": null,
+        "鞋子": "equip.deck_boots",
+        "饰品": null
+      },
+      "inventory": {
+        "item.tonic": 2
+      }
     },
     {
-      "id":"char.captain","name":"赫伯特船长","role":"灰帆号船长","tags":["嫌疑人"],
-      "check_stats":{"体魄":12,"洞察":10,"意志":13,"魅力":11,"学识":8},
-      "combat_stats":{"力量":13,"防御":12,"速度":9,"技巧":12,"生命":18},
-      "equipment":{"头盔":null,"盔甲":"equip.captain_armor","武器":"equip.lantern_hook","臂甲":"equip.iron_bracer","鞋子":"equip.deck_boots","饰品":"equip.tide_charm"},
-      "inventory":{"item.silver_salt":3}
+      "id": "char.captain",
+      "name": "赫伯特船长",
+      "role": "灰帆号船长",
+      "tags": [
+        "嫌疑人"
+      ],
+      "check_stats": {
+        "体魄": 12,
+        "洞察": 10,
+        "意志": 13,
+        "魅力": 11,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 13,
+        "防御": 12,
+        "速度": 9,
+        "技巧": 12,
+        "生命": 18
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": "equip.captain_armor",
+        "武器": "equip.lantern_hook",
+        "臂甲": "equip.iron_bracer",
+        "鞋子": "equip.deck_boots",
+        "饰品": "equip.tide_charm"
+      },
+      "inventory": {
+        "item.silver_salt": 3
+      }
+    },
+    {
+      "id": "char.story_001",
+      "name": "梅嫂",
+      "role": "被征走口粮的寡妇",
+      "tags": [
+        "乡民",
+        "证人"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 12,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_002",
+      "name": "周先生",
+      "role": "仍给孩子上课的塾师",
+      "tags": [
+        "乡民",
+        "学者"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 12
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_003",
+      "name": "阿照",
+      "role": "从矿路逃回的少年",
+      "tags": [
+        "矿工",
+        "证人"
+      ],
+      "check_stats": {
+        "体魄": 12,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 10,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 12
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_004",
+      "name": "邱渡夫",
+      "role": "坚持夜渡的老人",
+      "tags": [
+        "渡夫",
+        "义勇"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 12,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 10,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 12
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_005",
+      "name": "沈巡按",
+      "role": "愿意冒险递状的清官",
+      "tags": [
+        "官员",
+        "盟友"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 12,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_006",
+      "name": "二牛",
+      "role": "想守住祖田的佃农",
+      "tags": [
+        "农民"
+      ],
+      "check_stats": {
+        "体魄": 12,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_007",
+      "name": "柳娘",
+      "role": "免费熬药的女医",
+      "tags": [
+        "医者"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 12
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_008",
+      "name": "小满",
+      "role": "替弟妹抄字的女孩",
+      "tags": [
+        "孩童",
+        "证人"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 12,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 5,
+        "防御": 8,
+        "速度": 10,
+        "技巧": 8,
+        "生命": 7
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_009",
+      "name": "冯纸匠",
+      "role": "给穷人免钱写灵牌的匠人",
+      "tags": [
+        "匠人"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 12,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_010",
+      "name": "盐妹",
+      "role": "背盐养母的少女",
+      "tags": [
+        "盐工",
+        "证人"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 12,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_011",
+      "name": "班主何青",
+      "role": "宁可砸鼓也不唱假太平的艺人",
+      "tags": [
+        "艺人"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 12,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_012",
+      "name": "罗磨匠",
+      "role": "偷偷调回旧秤的磨匠",
+      "tags": [
+        "匠人"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 12,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_013",
+      "name": "老梁",
+      "role": "不肯烧掉死者家书的邮差",
+      "tags": [
+        "邮差"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 12,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_014",
+      "name": "赵婆婆",
+      "role": "守坟三夜的老人",
+      "tags": [
+        "乡民"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 12,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_015",
+      "name": "阿莲",
+      "role": "收养弃婴的寡妇",
+      "tags": [
+        "乡民"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 12,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_016",
+      "name": "马更夫",
+      "role": "故意敲错更点救人的更夫",
+      "tags": [
+        "更夫"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 12,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_017",
+      "name": "石头",
+      "role": "偷半袋糠救母的孩子",
+      "tags": [
+        "孩童"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 5,
+        "防御": 8,
+        "速度": 12,
+        "技巧": 8,
+        "生命": 7
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_018",
+      "name": "蓝嫂",
+      "role": "坚持分粮给外乡人的棚长",
+      "tags": [
+        "棚长"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 12,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_019",
+      "name": "盲陈",
+      "role": "用卦辞传消息的盲者",
+      "tags": [
+        "线人"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 12,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_020",
+      "name": "众乡民",
+      "role": "把微薄证物交出的人们",
+      "tags": [
+        "乡民",
+        "群像"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 12,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_021",
+      "name": "顾青衡",
+      "role": "替难民担保的青年律师",
+      "tags": [
+        "律师",
+        "盟友"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 12,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_022",
+      "name": "秦若兰",
+      "role": "拒绝改账的女会计",
+      "tags": [
+        "会计",
+        "证人"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 12
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_023",
+      "name": "许报务",
+      "role": "冒险复原密电的报务员",
+      "tags": [
+        "报务员"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 12,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_024",
+      "name": "韩议员",
+      "role": "愿公开证据的少数派议员",
+      "tags": [
+        "议员"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 12,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_025",
+      "name": "无名送信人",
+      "role": "牺牲姓名也要送出真相的人",
+      "tags": [
+        "信使",
+        "义勇"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 10,
+        "防御": 8,
+        "速度": 12,
+        "技巧": 8,
+        "生命": 12
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_026",
+      "name": "苏老太",
+      "role": "把煤让给产妇的邻居",
+      "tags": [
+        "市民"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 12,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_027",
+      "name": "夏云",
+      "role": "组织互助钱箱的女工",
+      "tags": [
+        "女工"
+      ],
+      "check_stats": {
+        "体魄": 12,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_028",
+      "name": "陆主笔",
+      "role": "宁愿坐牢也保留底稿的记者",
+      "tags": [
+        "记者"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 12
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_029",
+      "name": "白医生",
+      "role": "私开药柜的医生",
+      "tags": [
+        "医者"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 12
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_030",
+      "name": "阿真",
+      "role": "赎不回母亲镯子的学生",
+      "tags": [
+        "学生"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 12,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_031",
+      "name": "孟脚夫",
+      "role": "替乡民藏证据的搬运工",
+      "tags": [
+        "脚夫"
+      ],
+      "check_stats": {
+        "体魄": 12,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_032",
+      "name": "齐娘子",
+      "role": "假装买米实则记仓的摊贩",
+      "tags": [
+        "摊贩"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 12,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_033",
+      "name": "院童小海",
+      "role": "把自己的粥分给新来的孩子",
+      "tags": [
+        "孩童"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 12,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 5,
+        "防御": 8,
+        "速度": 10,
+        "技巧": 8,
+        "生命": 7
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_034",
+      "name": "林教授",
+      "role": "公开讲述乡村饥荒的教授",
+      "tags": [
+        "教授"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 12
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_035",
+      "name": "侍者阿升",
+      "role": "把菜单偷给报馆的人",
+      "tags": [
+        "侍者"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 12,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_036",
+      "name": "老潘",
+      "role": "带头拦下一车粮的苦力",
+      "tags": [
+        "苦力"
+      ],
+      "check_stats": {
+        "体魄": 12,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 10,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 12
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_037",
+      "name": "钟探长",
+      "role": "偷偷放走证人的巡捕",
+      "tags": [
+        "巡捕"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 12,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_038",
+      "name": "玛利亚修女",
+      "role": "藏起孩子名册的修女",
+      "tags": [
+        "修女"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 12,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 8,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_039",
+      "name": "放映员阿炳",
+      "role": "冒火抢出胶片的放映员",
+      "tags": [
+        "放映员"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 8,
+        "防御": 8,
+        "速度": 8,
+        "技巧": 12,
+        "生命": 8
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
+    },
+    {
+      "id": "char.story_040",
+      "name": "小报童",
+      "role": "把号外塞进每扇门缝的孩子",
+      "tags": [
+        "孩童",
+        "信使"
+      ],
+      "check_stats": {
+        "体魄": 8,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 8,
+        "学识": 8
+      },
+      "combat_stats": {
+        "力量": 5,
+        "防御": 8,
+        "速度": 12,
+        "技巧": 8,
+        "生命": 7
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": null,
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      }
     }
   ],
   "enemies": [
     {
-      "id":"enemy.brine_thrall","name":"盐蚀傀儡","role":"潮心造物","tags":["敌对","异变"],
-      "check_stats":{"体魄":14,"洞察":5,"意志":6,"魅力":2,"学识":3},
-      "combat_stats":{"力量":12,"防御":11,"速度":7,"技巧":9,"生命":18},
-      "equipment":{"头盔":null,"盔甲":null,"武器":"equip.rusty_anchor","臂甲":null,"鞋子":null,"饰品":null},
-      "inventory":{"item.silver_salt":2},"hp":18,"attack":3,"defense":11,"speed":7
+      "id": "enemy.brine_thrall",
+      "name": "盐蚀傀儡",
+      "role": "潮心造物",
+      "tags": [
+        "敌对",
+        "异变"
+      ],
+      "check_stats": {
+        "体魄": 14,
+        "洞察": 5,
+        "意志": 6,
+        "魅力": 2,
+        "学识": 3
+      },
+      "combat_stats": {
+        "力量": 12,
+        "防御": 11,
+        "速度": 7,
+        "技巧": 9,
+        "生命": 18
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": null,
+        "武器": "equip.rusty_anchor",
+        "臂甲": null,
+        "鞋子": null,
+        "饰品": null
+      },
+      "inventory": {
+        "item.silver_salt": 2
+      },
+      "hp": 18,
+      "attack": 3,
+      "defense": 11,
+      "speed": 7
     },
     {
-      "id":"enemy.smuggler","name":"走私打手","role":"灰帆号水手","tags":["敌对","人类"],
-      "check_stats":{"体魄":11,"洞察":8,"意志":8,"魅力":6,"学识":5},
-      "combat_stats":{"力量":11,"防御":9,"速度":10,"技巧":10,"生命":14},
-      "equipment":{"头盔":"equip.watch_cap","盔甲":"equip.oilskin","武器":"equip.lantern_hook","臂甲":null,"鞋子":"equip.deck_boots","饰品":null},
-      "inventory":{"item.tonic":1},"hp":14,"attack":2,"defense":10,"speed":9
+      "id": "enemy.smuggler",
+      "name": "走私打手",
+      "role": "灰帆号水手",
+      "tags": [
+        "敌对",
+        "人类"
+      ],
+      "check_stats": {
+        "体魄": 11,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 6,
+        "学识": 5
+      },
+      "combat_stats": {
+        "力量": 11,
+        "防御": 9,
+        "速度": 10,
+        "技巧": 10,
+        "生命": 14
+      },
+      "equipment": {
+        "头盔": "equip.watch_cap",
+        "盔甲": "equip.oilskin",
+        "武器": "equip.lantern_hook",
+        "臂甲": null,
+        "鞋子": "equip.deck_boots",
+        "饰品": null
+      },
+      "inventory": {
+        "item.tonic": 1
+      },
+      "hp": 14,
+      "attack": 2,
+      "defense": 10,
+      "speed": 9
+    },
+    {
+      "id": "enemy.rural_enforcer",
+      "name": "乡镇团练",
+      "role": "受命封门拿人的地方武装",
+      "tags": [
+        "敌对",
+        "人类"
+      ],
+      "check_stats": {
+        "体魄": 9,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 6,
+        "学识": 6
+      },
+      "combat_stats": {
+        "力量": 10,
+        "防御": 10,
+        "速度": 8,
+        "技巧": 9,
+        "生命": 13
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": "equip.oilskin",
+        "武器": "equip.lantern_hook",
+        "臂甲": null,
+        "鞋子": "equip.deck_boots",
+        "饰品": null
+      },
+      "inventory": {
+        "item.salvage": 1
+      },
+      "hp": 13,
+      "attack": 2,
+      "defense": 10,
+      "speed": 8
+    },
+    {
+      "id": "enemy.mine_guard",
+      "name": "矿路监工",
+      "role": "守着矿口和债役名册的打手",
+      "tags": [
+        "敌对",
+        "人类"
+      ],
+      "check_stats": {
+        "体魄": 9,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 6,
+        "学识": 6
+      },
+      "combat_stats": {
+        "力量": 12,
+        "防御": 10,
+        "速度": 8,
+        "技巧": 10,
+        "生命": 15
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": "equip.oilskin",
+        "武器": "equip.lantern_hook",
+        "臂甲": null,
+        "鞋子": "equip.deck_boots",
+        "饰品": null
+      },
+      "inventory": {
+        "item.silver_salt": 1
+      },
+      "hp": 15,
+      "attack": 2,
+      "defense": 10,
+      "speed": 8
+    },
+    {
+      "id": "enemy.city_patrol",
+      "name": "北都警备兵",
+      "role": "执行清场与搜查命令的城防人员",
+      "tags": [
+        "敌对",
+        "人类"
+      ],
+      "check_stats": {
+        "体魄": 9,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 6,
+        "学识": 6
+      },
+      "combat_stats": {
+        "力量": 10,
+        "防御": 12,
+        "速度": 9,
+        "技巧": 10,
+        "生命": 14
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": "equip.oilskin",
+        "武器": "equip.lantern_hook",
+        "臂甲": null,
+        "鞋子": "equip.deck_boots",
+        "饰品": null
+      },
+      "inventory": {
+        "item.relief_coupon": 1
+      },
+      "hp": 14,
+      "attack": 2,
+      "defense": 10,
+      "speed": 9
+    },
+    {
+      "id": "enemy.secret_police",
+      "name": "内务密探",
+      "role": "擅长恐吓、跟踪和销毁证据的密探",
+      "tags": [
+        "敌对",
+        "人类"
+      ],
+      "check_stats": {
+        "体魄": 9,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 6,
+        "学识": 6
+      },
+      "combat_stats": {
+        "力量": 9,
+        "防御": 10,
+        "速度": 12,
+        "技巧": 12,
+        "生命": 13
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": "equip.oilskin",
+        "武器": "equip.lantern_hook",
+        "臂甲": null,
+        "鞋子": "equip.deck_boots",
+        "饰品": null
+      },
+      "inventory": {
+        "item.witness_note": 1
+      },
+      "hp": 13,
+      "attack": 2,
+      "defense": 10,
+      "speed": 12
+    },
+    {
+      "id": "enemy.black_market_thug",
+      "name": "黑市打手",
+      "role": "替米行、盐井和当铺出面威吓的人",
+      "tags": [
+        "敌对",
+        "人类"
+      ],
+      "check_stats": {
+        "体魄": 9,
+        "洞察": 8,
+        "意志": 8,
+        "魅力": 6,
+        "学识": 6
+      },
+      "combat_stats": {
+        "力量": 11,
+        "防御": 9,
+        "速度": 10,
+        "技巧": 9,
+        "生命": 13
+      },
+      "equipment": {
+        "头盔": null,
+        "盔甲": "equip.oilskin",
+        "武器": "equip.lantern_hook",
+        "臂甲": null,
+        "鞋子": "equip.deck_boots",
+        "饰品": null
+      },
+      "inventory": {
+        "item.salvage": 1
+      },
+      "hp": 13,
+      "attack": 2,
+      "defense": 10,
+      "speed": 10
     }
   ],
   "equipment": [
-    {"id":"equip.watch_cap","name":"守夜帽","slot":"头盔","description":"厚呢帽遮挡海风。","bonuses":{"意志":1,"防御":1}},
-    {"id":"equip.archive_coat","name":"档案员长衣","slot":"盔甲","description":"内衬缝有防潮符文。","bonuses":{"学识":1,"防御":1,"生命":2}},
-    {"id":"equip.oilskin","name":"旧油布甲","slot":"盔甲","description":"结实但行动不便。","bonuses":{"防御":2,"速度":-1}},
-    {"id":"equip.captain_armor","name":"船长胸甲","slot":"盔甲","description":"灰帆号船长的仪式甲。","bonuses":{"防御":3,"意志":1,"生命":2}},
-    {"id":"equip.signal_pistol","name":"信号手枪","slot":"武器","description":"近距离也足够致命。","bonuses":{"技巧":2,"力量":1}},
-    {"id":"equip.lantern_hook","name":"提灯钩杖","slot":"武器","description":"守灯人驱赶海兽的工具。","bonuses":{"力量":2}},
-    {"id":"equip.rusty_anchor","name":"锈蚀锚钩","slot":"武器","description":"沉重的盐蚀武器。","bonuses":{"力量":3,"速度":-1}},
-    {"id":"equip.iron_bracer","name":"铆钉臂甲","slot":"臂甲","description":"保护持械手臂。","bonuses":{"防御":1,"技巧":1}},
-    {"id":"equip.deck_boots","name":"防滑甲靴","slot":"鞋子","description":"适合湿滑甲板。","bonuses":{"速度":1,"体魄":1}},
-    {"id":"equip.tide_charm","name":"潮汐护符","slot":"饰品","description":"低声提醒佩戴者保持清醒。","bonuses":{"洞察":1,"意志":2}}
+    {
+      "id": "equip.watch_cap",
+      "name": "守夜帽",
+      "slot": "头盔",
+      "description": "厚呢帽遮挡海风。",
+      "bonuses": {
+        "意志": 1,
+        "防御": 1
+      }
+    },
+    {
+      "id": "equip.archive_coat",
+      "name": "档案员长衣",
+      "slot": "盔甲",
+      "description": "内衬缝有防潮符文。",
+      "bonuses": {
+        "学识": 1,
+        "防御": 1,
+        "生命": 2
+      }
+    },
+    {
+      "id": "equip.oilskin",
+      "name": "旧油布甲",
+      "slot": "盔甲",
+      "description": "结实但行动不便。",
+      "bonuses": {
+        "防御": 2,
+        "速度": -1
+      }
+    },
+    {
+      "id": "equip.captain_armor",
+      "name": "船长胸甲",
+      "slot": "盔甲",
+      "description": "灰帆号船长的仪式甲。",
+      "bonuses": {
+        "防御": 3,
+        "意志": 1,
+        "生命": 2
+      }
+    },
+    {
+      "id": "equip.signal_pistol",
+      "name": "信号手枪",
+      "slot": "武器",
+      "description": "近距离也足够致命。",
+      "bonuses": {
+        "技巧": 2,
+        "力量": 1
+      }
+    },
+    {
+      "id": "equip.lantern_hook",
+      "name": "提灯钩杖",
+      "slot": "武器",
+      "description": "守灯人驱赶海兽的工具。",
+      "bonuses": {
+        "力量": 2
+      }
+    },
+    {
+      "id": "equip.rusty_anchor",
+      "name": "锈蚀锚钩",
+      "slot": "武器",
+      "description": "沉重的盐蚀武器。",
+      "bonuses": {
+        "力量": 3,
+        "速度": -1
+      }
+    },
+    {
+      "id": "equip.iron_bracer",
+      "name": "铆钉臂甲",
+      "slot": "臂甲",
+      "description": "保护持械手臂。",
+      "bonuses": {
+        "防御": 1,
+        "技巧": 1
+      }
+    },
+    {
+      "id": "equip.deck_boots",
+      "name": "防滑甲靴",
+      "slot": "鞋子",
+      "description": "适合湿滑甲板。",
+      "bonuses": {
+        "速度": 1,
+        "体魄": 1
+      }
+    },
+    {
+      "id": "equip.tide_charm",
+      "name": "潮汐护符",
+      "slot": "饰品",
+      "description": "低声提醒佩戴者保持清醒。",
+      "bonuses": {
+        "洞察": 1,
+        "意志": 2
+      }
+    },
+    {
+      "id": "equip.civic_badge",
+      "name": "证人铜章",
+      "slot": "饰品",
+      "description": "愿意站出来作证的人留下的旧铜章。",
+      "bonuses": {
+        "意志": 1,
+        "魅力": 1
+      }
+    },
+    {
+      "id": "equip.worker_gloves",
+      "name": "厚布工手套",
+      "slot": "臂甲",
+      "description": "磨破又缝好的工人手套，适合护住证物。",
+      "bonuses": {
+        "体魄": 1,
+        "防御": 1
+      }
+    },
+    {
+      "id": "equip.press_card",
+      "name": "临时报馆证",
+      "slot": "饰品",
+      "description": "能让人多看一眼，也可能招来盘问。",
+      "bonuses": {
+        "学识": 1,
+        "洞察": 1
+      }
+    }
   ],
   "items": [
-    {"id":"item.pass","name":"旧港通行证","type":"任务物品","description":"允许进入封锁码头。","max_stack":1},
-    {"id":"item.tonic","name":"提神药剂","type":"消耗品","description":"战斗中恢复6点生命。","max_stack":9},
-    {"id":"item.lens","name":"裂纹透镜","type":"任务物品","description":"能看见雾中的符文。","max_stack":1},
-    {"id":"item.silver_salt","name":"银灰盐块","type":"换金道具","description":"走私商人高价收购的异常盐块。","max_stack":99},
-    {"id":"item.ration","name":"旅行口粮","type":"消耗品","description":"食用后恢复30点饱腹值。","max_stack":20},
-    {"id":"item.salvage","name":"旧船零件","type":"换金道具","description":"从退潮残骸中回收的材料。","max_stack":99},
-    {"id":"item.herb","name":"雾生药草","type":"消耗品","description":"可用于调配药剂的潮湿药草。","max_stack":99}
+    {
+      "id": "item.pass",
+      "name": "旧港通行证",
+      "type": "任务物品",
+      "description": "允许进入封锁码头。",
+      "max_stack": 1
+    },
+    {
+      "id": "item.tonic",
+      "name": "提神药剂",
+      "type": "消耗品",
+      "description": "战斗中恢复6点生命。",
+      "max_stack": 9
+    },
+    {
+      "id": "item.lens",
+      "name": "裂纹透镜",
+      "type": "任务物品",
+      "description": "能看见雾中的符文。",
+      "max_stack": 1
+    },
+    {
+      "id": "item.silver_salt",
+      "name": "银灰盐块",
+      "type": "换金道具",
+      "description": "走私商人高价收购的异常盐块。",
+      "max_stack": 99
+    },
+    {
+      "id": "item.ration",
+      "name": "旅行口粮",
+      "type": "消耗品",
+      "description": "食用后恢复30点饱腹值。",
+      "max_stack": 20
+    },
+    {
+      "id": "item.salvage",
+      "name": "旧船零件",
+      "type": "换金道具",
+      "description": "从退潮残骸中回收的材料。",
+      "max_stack": 99
+    },
+    {
+      "id": "item.herb",
+      "name": "雾生药草",
+      "type": "消耗品",
+      "description": "可用于调配药剂的潮湿药草。",
+      "max_stack": 99
+    },
+    {
+      "id": "item.witness_note",
+      "name": "证人短笺",
+      "type": "任务物品",
+      "description": "写着姓名、时间和地点的短笺，可互相印证。",
+      "max_stack": 20
+    },
+    {
+      "id": "item.relief_coupon",
+      "name": "赈济券",
+      "type": "换金道具",
+      "description": "被层层转手的赈济凭券，也能换到少量银币。",
+      "max_stack": 20,
+      "sell_price": 3
+    }
   ]
 }

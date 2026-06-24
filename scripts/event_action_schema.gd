@@ -5,37 +5,37 @@ const ACTIONS := {
 	"": {
 		"label": "跳转/仅效果",
 		"required": [],
-		"optional": ["next", "flag", "item", "damage", "quest", "relation", "coins"]
+		"optional": ["next", "flag", "item", "item_quantity", "damage", "quest", "relation", "coins", "stat_reward", "stat_rewards"]
 	},
 	"open_map": {
 		"label": "打开地图",
 		"required": [],
-		"optional": ["flag", "item", "damage", "quest", "relation", "coins"]
+		"optional": ["flag", "item", "item_quantity", "damage", "quest", "relation", "coins", "stat_reward", "stat_rewards"]
 	},
 	"open_growth": {
 		"label": "打开育成",
 		"required": [],
-		"optional": ["flag", "item", "damage", "quest", "relation", "coins"]
+		"optional": ["flag", "item", "item_quantity", "damage", "quest", "relation", "coins", "stat_reward", "stat_rewards"]
 	},
 	"d20_check": {
 		"label": "D20检定",
 		"required": ["stat", "difficulty", "success", "failure"],
-		"optional": ["flag", "item", "damage", "quest", "relation", "coins"]
+		"optional": ["flag", "item", "item_quantity", "damage", "quest", "relation", "coins", "stat_reward", "stat_rewards"]
 	},
 	"resource_check": {
 		"label": "资源检定",
 		"required": ["stat", "difficulty", "resource"],
-		"optional": ["flag", "damage", "quest", "relation", "coins"]
+		"optional": ["flag", "damage", "quest", "relation", "coins", "stat_reward", "stat_rewards"]
 	},
 	"start_battle": {
 		"label": "开始战斗",
 		"required": [],
-		"optional": ["flag", "item", "damage", "quest", "relation", "coins"]
+		"optional": ["flag", "item", "item_quantity", "damage", "quest", "relation", "coins", "stat_reward", "stat_rewards", "enemy", "victory", "battle_intro"]
 	},
 	"summary": {
 		"label": "查看总结",
 		"required": [],
-		"optional": ["flag", "item", "damage", "quest", "relation", "coins"]
+		"optional": ["flag", "item", "item_quantity", "damage", "quest", "relation", "coins", "stat_reward", "stat_rewards"]
 	}
 }
 

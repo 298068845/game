@@ -120,7 +120,7 @@ var text_main := Color("e8eef8")
 var text_dim := Color("9fb0c8")
 var danger := Color("e36f78")
 
-const LOCATIONS := ["渡船", "雾港码头", "雾港广场", "黑帆酒馆", "旧灯塔", "地下钟室"]
+const LOCATIONS := ["渡船", "雾港码头", "雾港广场", "黑帆酒馆", "旧灯塔", "地下钟室", "槐树镇", "北都"]
 const DEFAULT_MAP_IMAGE := "res://assets/defaults/default_map.png"
 const DEFAULT_ENEMY_IMAGE := "res://assets/defaults/default_enemy.png"
 const DEFAULT_ITEM_IMAGE := "res://assets/defaults/default_item.png"
@@ -138,7 +138,9 @@ const LOCATION_ENTRY := {
 	"雾港广场": "square_01",
 	"黑帆酒馆": "tavern_01",
 	"旧灯塔": "lighthouse_01",
-	"地下钟室": "archive_01"
+	"地下钟室": "archive_01",
+	"槐树镇": "rural_001_01",
+	"北都": "city_021_01"
 }
 const MAP_MARKER_POSITIONS := {
 	"渡船": Vector2(120, 210),
@@ -146,7 +148,9 @@ const MAP_MARKER_POSITIONS := {
 	"雾港广场": Vector2(520, 145),
 	"黑帆酒馆": Vector2(620, 85),
 	"旧灯塔": Vector2(790, 95),
-	"地下钟室": Vector2(860, 205)
+	"地下钟室": Vector2(860, 205),
+	"槐树镇": Vector2(420, 230),
+	"北都": Vector2(720, 225)
 }
 
 func _ready() -> void:
@@ -1946,8 +1950,14 @@ func _choose(option: Dictionary) -> void:
 		GameState.adjust_relation(str(option.relation.get("name", "")), int(option.relation.get("delta", 0)))
 	if option.has("coins"):
 		GameState.player.coins = int(GameState.player.get("coins", 0)) + int(option.coins)
-	if option.has("item") and not GameState.has_item(option.item):
-		GameState.add_item(option.item)
+	if option.has("stat_rewards") and option.stat_rewards is Array:
+		for reward in option.stat_rewards:
+			if reward is Dictionary:
+				_apply_stat_reward(reward)
+	if option.has("stat_reward") and option.stat_reward is Dictionary:
+		_apply_stat_reward(option.stat_reward)
+	if option.has("item") and (int(option.get("item_quantity", 1)) > 1 or not GameState.has_item(option.item)):
+		GameState.add_item(option.item, int(option.get("item_quantity", 1)))
 		GameState.add_log("获得物品：" + option.item)
 	if option.has("damage"):
 		GameState.player.hp = max(1, int(GameState.player.hp) - int(option.damage))
@@ -1957,11 +1967,23 @@ func _choose(option: Dictionary) -> void:
 			"open_map": show_map()
 			"d20_check": _perform_check(option)
 			"resource_check": _perform_resource_check(option)
-			"start_battle": show_battle(true)
+			"start_battle": show_battle(true, option)
 			"summary": show_summary()
 		return
 	if option.has("next"):
 		show_event(option.next)
+
+func _apply_stat_reward(reward: Dictionary) -> void:
+	var track := str(reward.get("track", "growth"))
+	var stat := str(reward.get("stat", ""))
+	var amount := int(reward.get("amount", 0))
+	var target: Dictionary = GameState.player.growth if track == "growth" else GameState.player.combat
+	if stat.is_empty() or amount == 0 or not target.has(stat):
+		return
+	target[stat] = int(target.get(stat, 8)) + amount
+	if track == "combat" and stat == "生命":
+		GameState.player.hp = mini(_effective_combat("生命"), int(GameState.player.hp) + amount)
+	GameState.add_log("事件奖励：%s %+d" % [stat, amount])
 
 func _perform_resource_check(option: Dictionary) -> void:
 	var stat := str(option.get("stat", "洞察"))
@@ -2198,18 +2220,31 @@ func _growth_panel(label: String, stats: Dictionary, narrative: bool) -> PanelCo
 
 # --- 回合制战斗 ---
 
-func show_battle(new_battle: bool) -> void:
+func show_battle(new_battle: bool, battle_config: Dictionary = {}) -> void:
 	current_view = "battle"
 	if new_battle or GameState.battle.is_empty():
-		var enemy: Dictionary = _prepare_enemy(_find_entity("enemies", "enemy.brine_thrall"))
+		var enemy_id := str(battle_config.get("enemy", "enemy.brine_thrall"))
+		var enemy: Dictionary = _prepare_enemy(_find_entity("enemies", enemy_id))
+		if enemy.is_empty():
+			enemy = _prepare_enemy(_find_entity("enemies", "enemy.brine_thrall"))
 		if GameState.world.flags.get("battle_advantage", false):
 			enemy.hp -= 3
-		GameState.battle = {"active": true, "enemy": enemy, "round": 1, "guard": false, "weakened": false, "defeats": 0, "enemy_intent": "attack", "log": ["盐蚀傀儡从铜钟后扑出！"]}
+		GameState.battle = {
+			"active": true,
+			"enemy": enemy,
+			"round": 1,
+			"guard": false,
+			"weakened": false,
+			"defeats": 0,
+			"enemy_intent": "attack",
+			"victory_event": str(battle_config.get("victory", "after_battle")),
+			"log": [str(battle_config.get("battle_intro", "%s拦住了去路！" % enemy.get("name", "敌人")))]
+		}
 	_clear_view()
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 14)
 	content_root.add_child(root)
-	root.add_child(_heading("回合制战斗 · 地下钟室", 30))
+	root.add_child(_heading("回合制战斗 · %s" % GameState.world.get("location", "未知地点"), 30))
 	var arena := HBoxContainer.new()
 	arena.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	arena.add_theme_constant_override("separation", 22)
@@ -2235,7 +2270,7 @@ func show_battle(new_battle: bool) -> void:
 		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		combat_box.add_child(portrait)
-	combat_box.add_child(_muted("一具被海盐侵蚀、遗忘了姓名的港民躯壳。\n敌方意图：%s" % _enemy_intent_text()))
+	combat_box.add_child(_muted("%s\n敌方意图：%s" % [GameState.battle.enemy.get("role", "敌对目标"), _enemy_intent_text()]))
 	var actions := VBoxContainer.new()
 	actions.add_theme_constant_override("separation", 8)
 	combat_box.add_child(actions)
@@ -2272,7 +2307,7 @@ func _battle_action(action: String) -> void:
 				battle_state.enemy.hp = int(battle_state.enemy.hp) - dealt
 				battle_state.log.append("你掷出%d，命中并造成%d点伤害。" % [hit.total, dealt])
 			else:
-				battle_state.log.append("你掷出%d，攻击被盐壳挡开。" % hit.total)
+				battle_state.log.append("你掷出%d，攻击被%s挡开。" % [hit.total, battle_state.enemy.get("name", "敌人")])
 		"power":
 			var hit: Dictionary = DiceClass.d20(floori((_effective_combat("力量") - 8) / 2.0) - 1)
 			if hit.total >= int(battle_state.enemy.defense):
@@ -2313,11 +2348,11 @@ func _battle_action(action: String) -> void:
 			show_map()
 			return
 	if int(battle_state.enemy.hp) <= 0:
-		battle_state.log.append("盐蚀傀儡倒下了。")
+		battle_state.log.append("%s倒下了。" % battle_state.enemy.get("name", "敌人"))
 		battle_state.active = false
 		GameState.world.battle_won = true
 		GameState.add_log("战斗胜利，共%d回合" % int(battle_state.round))
-		show_event("after_battle")
+		show_event(str(battle_state.get("victory_event", "after_battle")))
 		return
 	_enemy_turn()
 	if int(GameState.player.hp) <= 0:
@@ -2347,9 +2382,9 @@ func _enemy_turn() -> void:
 		if battle_state.guard:
 			damage = damage if intent == "guard_break" else ceili(damage / 2.0)
 		GameState.player.hp = int(GameState.player.hp) - damage
-		battle_state.log.append("傀儡掷出%d，锚钩造成%d点伤害。" % [hit.total, damage])
+		battle_state.log.append("%s掷出%d，造成%d点伤害。" % [battle_state.enemy.get("name", "敌人"), hit.total, damage])
 	else:
-		battle_state.log.append("傀儡掷出%d，它的锚钩从你身边掠过。" % hit.total)
+		battle_state.log.append("%s掷出%d，攻击从你身边掠过。" % [battle_state.enemy.get("name", "敌人"), hit.total])
 	battle_state.guard = false
 
 func _enemy_intent_text() -> String:
