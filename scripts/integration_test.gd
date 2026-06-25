@@ -36,6 +36,17 @@ func _initialize() -> void:
 	assert(app._location_unlocked("雾港码头"))
 	assert(app._event_unlocked("repeat_forage"))
 	assert(app.map_marker_count > 0)
+	assert(app.find_children("*", "Label", true, false).filter(func(node): return node.text == "◆ 剧情").is_empty())
+	app._show_map_bag_panel()
+	await process_frame
+	var bag_panel := app.map_menu_overlay.get_child(0) as Control
+	assert(bag_panel.position.y >= 0)
+	assert(bag_panel.position.y + bag_panel.size.y <= app.map_menu_overlay.size.y - 68)
+	app._show_map_relations_panel()
+	await process_frame
+	var relations_panel := app.map_menu_overlay.get_child(0) as Control
+	assert(relations_panel.position.y >= 0)
+	assert(relations_panel.position.y + relations_panel.size.y <= app.map_menu_overlay.size.y - 68)
 	assert(app._map_marker_icon({"repeatable":true}) == "↻")
 	assert(app._map_marker_icon({"type":"随机事件"}) == "✦")
 	assert(app._map_marker_icon({"type":"剧情事件"}) == "◆")
@@ -117,8 +128,29 @@ func _initialize() -> void:
 	app.show_tools()
 	await process_frame
 	assert(app.editor_event_id != null)
+	var event_editor_page: Node = app.tools_tabs.get_child(0)
+	assert(event_editor_page.find_children("*", "ScrollContainer", true, false).is_empty())
+	assert(app.editor_preview is HFlowContainer)
+	assert(app.editor_event_id.editable and app.editor_event_id.text.begins_with("custom_event_"))
+	assert(app.editor_list.get_selected_items().is_empty())
+	app.editor_type.select(1)
+	app.editor_type.item_selected.emit(1)
+	for location_index in range(app.editor_location.item_count):
+		if app.editor_location.get_item_text(location_index) == "黑帆酒馆":
+			app.editor_location.select(location_index)
+			app.editor_location.item_selected.emit(location_index)
+			break
+	await process_frame
+	var preview_text := ""
+	for preview_label in app.editor_preview.find_children("*", "Label", true, false):
+		preview_text += (preview_label as Label).text + "\n"
+	assert(preview_text.contains("随机事件") and preview_text.contains("黑帆酒馆"))
+	assert(not app.editor_option_check_row.visible)
+	assert(not app.editor_option_check_targets_box.visible)
+	assert(not app.editor_option_next_box.visible)
 	app._new_custom_event()
-	assert(app.editor_event_id.editable and app.editor_event_id.text == "")
+	assert(app.editor_event_id.editable and app.editor_event_id.text.begins_with("custom_event_"))
+	assert(app.editor_list.get_selected_items().is_empty())
 	assert(app.editor_location != null)
 	assert(app.entity_kind != null and app.entity_stat_inputs.size() == 10)
 	assert(app.item_category != null and app.item_bonus_inputs.size() == 10)

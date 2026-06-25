@@ -30,21 +30,21 @@ var editor_event_id: LineEdit
 var editor_name: LineEdit
 var editor_type: OptionButton
 var editor_location: OptionButton
-var editor_lock: CheckBox
+var editor_lock: Button
 var editor_prerequisites: LineEdit
 var editor_prerequisite_mode: OptionButton
 var editor_flow_mode: OptionButton
-var editor_repeatable: CheckBox
-var editor_draft: CheckBox
+var editor_repeatable: Button
+var editor_draft: Button
 var editor_action_cost: SpinBox
 var editor_countdown_days: SpinBox
 var editor_timeout_event: OptionButton
-var editor_ends_continuous: CheckBox
+var editor_ends_continuous: Button
 var editor_background_path: LineEdit
 var editor_background_preview: TextureRect
 var editor_music_path: LineEdit
 var editor_text: TextEdit
-var editor_preview: HBoxContainer
+var editor_preview: Container
 var editor_options_list: ItemList
 var editor_option_text: LineEdit
 var editor_option_action: OptionButton
@@ -57,6 +57,11 @@ var editor_option_resource: OptionButton
 var editor_option_item: OptionButton
 var editor_option_damage: SpinBox
 var editor_option_flag: LineEdit
+var editor_option_next_box: Control
+var editor_option_check_targets_box: Control
+var editor_option_check_row: Control
+var editor_option_item_box: Control
+var editor_option_effect_box: Control
 var editor_options: Array = []
 var selected_editor_option_index := -1
 var manager_list: ItemList
@@ -114,13 +119,13 @@ var has_map_focus := false
 var selected_map_point_index := -1
 var draft_map_point_position := Vector2(480, 150)
 
-var bg := Color("101724")
-var panel := Color("182235")
-var panel_alt := Color("202d43")
-var accent := Color("62d4c7")
+var bg := Color("181a1f")
+var panel := Color("22272e")
+var panel_alt := Color("2f3742")
+var accent := Color("5bd4c8")
 var gold := Color("e8b75d")
-var text_main := Color("e8eef8")
-var text_dim := Color("9fb0c8")
+var text_main := Color("f1f4f8")
+var text_dim := Color("b5c0ce")
 var danger := Color("e36f78")
 
 const LOCATIONS := ["渡船", "雾港码头", "雾港广场", "黑帆酒馆", "旧灯塔", "地下钟室", "槐树镇", "北都"]
@@ -715,28 +720,29 @@ func _build_shell() -> void:
 
 	var header := PanelContainer.new()
 	header.custom_minimum_size.y = 68
-	header.add_theme_stylebox_override("panel", _box(Color("111c2b"), 0, 0))
+	header.add_theme_stylebox_override("panel", _box(Color("20252c"), 0, 0))
 	outer.add_child(header)
 	var header_margin := MarginContainer.new()
-	header_margin.add_theme_constant_override("margin_left", 28)
-	header_margin.add_theme_constant_override("margin_right", 28)
+	header_margin.add_theme_constant_override("margin_left", 18)
+	header_margin.add_theme_constant_override("margin_right", 18)
 	header.add_child(header_margin)
 	var header_row := HBoxContainer.new()
 	header_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	header_row.add_theme_constant_override("separation", 16)
+	header_row.add_theme_constant_override("separation", 10)
 	header_margin.add_child(header_row)
 	var brand := Label.new()
 	brand.text = "雾港余烬"
-	brand.add_theme_font_size_override("font_size", 22)
+	brand.add_theme_font_size_override("font_size", 20)
 	brand.add_theme_color_override("font_color", accent)
 	header_row.add_child(brand)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_row.add_child(spacer)
-	for spec in [["主菜单", show_menu], ["开始/继续", _continue_game], ["地图", show_map], ["背包/装备", show_inventory], ["角色育成", show_growth], ["创作工具", show_tools]]:
-		var button := _button(spec[0], false)
-		button.custom_minimum_size.x = 86
-		button.pressed.connect(spec[1])
+	for spec in [["主菜单", "主菜单", show_menu], ["继续", "开始/继续", _continue_game], ["地图", "地图", show_map], ["背包", "背包/装备", show_inventory], ["育成", "角色育成", show_growth], ["创作", "创作工具", show_tools]]:
+		var button := _button(str(spec[0]), false)
+		button.tooltip_text = str(spec[1])
+		button.custom_minimum_size = Vector2(72, 36)
+		button.pressed.connect(spec[2])
 		header_row.add_child(button)
 
 	content_root = MarginContainer.new()
@@ -758,6 +764,21 @@ func _build_shell() -> void:
 func _clear_view() -> void:
 	for child in content_root.get_children():
 		child.queue_free()
+	_set_default_content_margins()
+
+func _set_content_margins(left: int, right: int, top: int, bottom: int) -> void:
+	if content_root == null:
+		return
+	content_root.add_theme_constant_override("margin_left", left)
+	content_root.add_theme_constant_override("margin_right", right)
+	content_root.add_theme_constant_override("margin_top", top)
+	content_root.add_theme_constant_override("margin_bottom", bottom)
+
+func _set_default_content_margins() -> void:
+	_set_content_margins(28, 28, 22, 20)
+
+func _set_tool_content_margins() -> void:
+	_set_content_margins(20, 20, 8, 20)
 
 func _box(color: Color, radius: int = 8, border: int = 1) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -786,6 +807,20 @@ func _button(label: String, primary := false) -> Button:
 	button.add_theme_stylebox_override("normal", _box(accent if primary else panel_alt, 6, 0))
 	button.add_theme_stylebox_override("hover", _box((accent if primary else panel_alt).lightened(0.12), 6, 0))
 	button.add_theme_stylebox_override("pressed", _box((accent if primary else panel_alt).darkened(0.12), 6, 0))
+	return button
+
+func _toggle_button(label: String) -> Button:
+	var button := Button.new()
+	button.text = label
+	button.toggle_mode = true
+	button.custom_minimum_size = Vector2(116, 30)
+	button.add_theme_font_size_override("font_size", 14)
+	button.add_theme_color_override("font_color", text_main)
+	button.add_theme_color_override("font_pressed_color", Color("102020"))
+	button.add_theme_stylebox_override("normal", _box(Color("303640"), 6, 1))
+	button.add_theme_stylebox_override("hover", _box(Color("3a424e"), 6, 1))
+	button.add_theme_stylebox_override("pressed", _box(accent, 6, 0))
+	button.add_theme_stylebox_override("hover_pressed", _box(accent.lightened(0.08), 6, 0))
 	return button
 
 func _heading(text: String, size := 28) -> Label:
@@ -1738,7 +1773,7 @@ func _create_map_root() -> Control:
 func _build_map_event_canvas(root: Control, map_texture: Texture2D) -> void:
 	map_marker_count = 0
 	var canvas_panel := PanelContainer.new()
-	var canvas_style := _box(Color("101724"))
+	var canvas_style := _box(bg)
 	canvas_style.content_margin_left = 0
 	canvas_style.content_margin_right = 0
 	canvas_style.content_margin_top = 0
@@ -1783,14 +1818,6 @@ func _build_map_event_canvas(root: Control, map_texture: Texture2D) -> void:
 		marker.position = service.get("position", Vector2(480, 150))
 		map_layer.add_child(marker)
 		map_marker_count += 1
-	var legend := HBoxContainer.new()
-	legend.position = Vector2(18, 18)
-	legend.add_theme_constant_override("separation", 10)
-	canvas.add_child(legend)
-	for text in ["◆ 剧情", "✦ 随机", "↻ 可重复", "旅 旅馆", "商 商店"]:
-		var label := _muted(text)
-		label.add_theme_color_override("font_color", text_main)
-		legend.add_child(label)
 	var transition_shade := ColorRect.new()
 	transition_shade.color = Color(0.03, 0.06, 0.1, 0.0)
 	transition_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1837,15 +1864,21 @@ func _clear_map_menu_overlay() -> void:
 
 func _map_overlay_panel(title_text: String, size: Vector2 = Vector2(760, 430)) -> VBoxContainer:
 	_clear_map_menu_overlay()
+	var overlay_width := maxf(map_menu_overlay.size.x, 1.0)
+	var overlay_height := maxf(map_menu_overlay.size.y, 1.0)
+	var top_clearance := 18.0
+	var bottom_clearance := 78.0
+	var panel_width := minf(size.x, maxf(320.0, overlay_width - 32.0))
+	var panel_height := minf(size.y, maxf(240.0, overlay_height - top_clearance - bottom_clearance))
 	var panel_container := PanelContainer.new()
 	panel_container.anchor_left = 0.5
 	panel_container.anchor_right = 0.5
-	panel_container.anchor_top = 1.0
-	panel_container.anchor_bottom = 1.0
-	panel_container.offset_left = -size.x * 0.5
-	panel_container.offset_right = size.x * 0.5
-	panel_container.offset_top = -size.y - 84
-	panel_container.offset_bottom = -84
+	panel_container.anchor_top = 0.0
+	panel_container.anchor_bottom = 0.0
+	panel_container.offset_left = -panel_width * 0.5
+	panel_container.offset_right = panel_width * 0.5
+	panel_container.offset_top = top_clearance
+	panel_container.offset_bottom = top_clearance + panel_height
 	panel_container.clip_contents = true
 	panel_container.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel_container.add_theme_stylebox_override("panel", _map_hud_box(Color(0.04, 0.1, 0.09, 0.66), Color(1, 1, 1, 0.52)))
@@ -2087,22 +2120,22 @@ func _event_countdown_remaining(event: Dictionary) -> int:
 func _map_service_markers() -> Array:
 	var result: Array = []
 	if _location_unlocked("黑帆酒馆"):
-		result.append({"id":"inn", "title":"黑帆旅馆", "location":"黑帆酒馆", "icon":"旅", "position":Vector2(650, 120), "color":Color("7fdc8f"), "callback":show_inn})
+		result.append({"id":"inn", "title":"黑帆旅馆", "location":"黑帆酒馆", "icon":"⌂", "position":Vector2(650, 120), "color":Color("7fdc8f"), "callback":show_inn})
 	if _location_unlocked("雾港广场"):
-		result.append({"id":"shop", "title":"雾港杂货商", "location":"雾港广场", "icon":"商", "position":Vector2(555, 195), "color":Color("f1cf74"), "callback":show_shop})
+		result.append({"id":"shop", "title":"雾港杂货商", "location":"雾港广场", "icon":"◈", "position":Vector2(555, 195), "color":Color("f1cf74"), "callback":show_shop})
 	return result
 
 func _make_map_service_marker(service: Dictionary, map_layer: Control) -> Button:
 	var marker := Button.new()
 	marker.text = str(service.get("icon", "•"))
 	marker.tooltip_text = "%s\n%s · 设施入口\n点击进入" % [service.get("title", ""), service.get("location", "")]
-	marker.custom_minimum_size = Vector2(42, 42)
-	marker.add_theme_font_size_override("font_size", 18)
+	marker.custom_minimum_size = Vector2(44, 44)
+	marker.add_theme_font_size_override("font_size", 22)
 	var marker_color: Color = service.get("color", accent)
-	marker.add_theme_stylebox_override("normal", _box(marker_color, 21, 1))
-	marker.add_theme_stylebox_override("hover", _box(marker_color.lightened(0.16), 21, 1))
-	marker.add_theme_stylebox_override("pressed", _box(marker_color.darkened(0.12), 21, 1))
-	marker.add_theme_color_override("font_color", Color("07151a"))
+	marker.add_theme_stylebox_override("normal", _map_marker_box(Color("20262e"), marker_color))
+	marker.add_theme_stylebox_override("hover", _map_marker_box(Color("28313b"), marker_color.lightened(0.18)))
+	marker.add_theme_stylebox_override("pressed", _map_marker_box(Color("171c22"), marker_color.darkened(0.08)))
+	marker.add_theme_color_override("font_color", marker_color.lightened(0.16))
 	var callback: Callable = service.get("callback", show_map)
 	marker.pressed.connect(func(): _zoom_map_to_marker_then(map_layer, marker, callback))
 	return marker
@@ -2112,23 +2145,43 @@ func _make_map_marker(event: Dictionary, map_layer: Control) -> Button:
 	var icon := _map_marker_icon(event)
 	marker.text = icon
 	marker.tooltip_text = "%s\n%s · %s\n点击进入" % [event.get("title", event.get("id", "")), event.get("location", ""), _map_marker_kind(event)]
-	marker.custom_minimum_size = Vector2(42, 42)
+	marker.custom_minimum_size = Vector2(44, 44)
 	marker.add_theme_font_size_override("font_size", 22)
 	var remaining_days := _event_countdown_remaining(event)
 	if remaining_days > 0:
-		marker.text = "%s\n%d天" % [icon, remaining_days]
 		marker.tooltip_text += "\n倒计时：剩余%d天" % remaining_days
-		marker.custom_minimum_size = Vector2(50, 50)
-		marker.add_theme_font_size_override("font_size", 16)
 	var marker_color := _map_marker_color(event)
-	marker.add_theme_stylebox_override("normal", _box(marker_color, 21, 1))
-	marker.add_theme_stylebox_override("hover", _box(marker_color.lightened(0.16), 21, 1))
-	marker.add_theme_stylebox_override("pressed", _box(marker_color.darkened(0.12), 21, 1))
-	marker.add_theme_color_override("font_color", Color("07151a"))
+	marker.add_theme_stylebox_override("normal", _map_marker_box(Color("20262e"), marker_color))
+	marker.add_theme_stylebox_override("hover", _map_marker_box(Color("28313b"), marker_color.lightened(0.18)))
+	marker.add_theme_stylebox_override("pressed", _map_marker_box(Color("171c22"), marker_color.darkened(0.08)))
+	marker.add_theme_stylebox_override("disabled", _map_marker_box(Color("25282d"), Color("6e7784")))
+	marker.add_theme_color_override("font_color", marker_color.lightened(0.18))
+	marker.add_theme_color_override("font_disabled_color", Color("9aa3ad"))
 	marker.disabled = int(GameState.world.action_points) < int(event.get("action_cost", 1))
 	var event_id := str(event.id)
 	marker.pressed.connect(func(): _zoom_map_to_marker_then(map_layer, marker, func(): _start_event(event_id)))
 	return marker
+
+func _map_marker_box(fill: Color, border_color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.corner_radius_top_left = 24
+	style.corner_radius_top_right = 24
+	style.corner_radius_bottom_left = 24
+	style.corner_radius_bottom_right = 24
+	style.border_width_left = 3
+	style.border_width_right = 3
+	style.border_width_top = 3
+	style.border_width_bottom = 3
+	style.border_color = border_color
+	style.content_margin_left = 6
+	style.content_margin_right = 6
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	style.shadow_color = Color(0, 0, 0, 0.42)
+	style.shadow_size = 5
+	style.shadow_offset = Vector2(0, 2)
+	return style
 
 func _zoom_map_to_marker_then(map_layer: Control, marker: Control, callback: Callable) -> void:
 	if map_layer == null or marker == null or not is_instance_valid(map_layer) or not is_instance_valid(marker):
@@ -2194,10 +2247,10 @@ func _map_marker_kind(event: Dictionary) -> String:
 
 func _map_marker_color(event: Dictionary) -> Color:
 	if bool(event.get("repeatable", false)):
-		return Color("62d4c7")
+		return Color("65d7a5")
 	if event.get("type", "剧情事件") == "随机事件":
-		return Color("e8b75d")
-	return Color("9fb0ff")
+		return Color("f0bd61")
+	return Color("ed7d6c")
 
 func _location_unlocked(location: String) -> bool:
 	if not LOCATION_ENTRY.has(location):
@@ -2695,10 +2748,11 @@ func _enemy_intent_text() -> String:
 func show_tools() -> void:
 	current_view = "tools"
 	_clear_view()
+	_set_tool_content_margins()
 	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 12)
+	root.add_theme_constant_override("separation", 2)
 	content_root.add_child(root)
-	root.add_child(_heading("内容创作与管理工具", 30))
+	root.add_child(_heading("内容创作与管理工具", 20))
 	var tabs := TabContainer.new()
 	tools_tabs = tabs
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -2785,7 +2839,7 @@ func _build_map_asset_manager(tabs: TabContainer) -> void:
 	content.add_child(save)
 
 func _build_map_point_picker() -> PanelContainer:
-	var holder := _panel_container(Color("101724"))
+	var holder := _panel_container(bg)
 	holder.custom_minimum_size = Vector2(0, 320)
 	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map_point_picker_canvas = Control.new()
@@ -2925,14 +2979,26 @@ func _delete_map_point() -> void:
 func _build_event_editor(tabs: TabContainer) -> void:
 	var page := HBoxContainer.new()
 	page.name = "可视化事件编辑器"
-	page.add_theme_constant_override("separation", 14)
+	page.add_theme_constant_override("separation", 12)
 	tabs.add_child(page)
 	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 250
+	left.custom_minimum_size.x = 210
 	page.add_child(left)
-	left.add_child(_heading("事件库", 20))
+	var library_header := HBoxContainer.new()
+	library_header.add_theme_constant_override("separation", 8)
+	left.add_child(library_header)
+	library_header.add_child(_heading("事件库", 18))
+	var library_spacer := Control.new()
+	library_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	library_header.add_child(library_spacer)
+	var add := _button("新建", true)
+	add.custom_minimum_size = Vector2(70, 28)
+	add.pressed.connect(_new_custom_event)
+	library_header.add_child(add)
 	editor_list = ItemList.new()
-	editor_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	editor_list.auto_height = false
+	editor_list.custom_minimum_size = Vector2(0, 300)
+	editor_list.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	left.add_child(editor_list)
 	for event in scenario.events:
 		editor_list.add_item("[内置%s] %s · %s" % ["·锁" if event.get("locked", false) else "", event.title, event.get("id", "")])
@@ -2944,113 +3010,214 @@ func _build_event_editor(tabs: TabContainer) -> void:
 			state_tags += "·锁"
 		editor_list.add_item("[自定义%s] %s · %s" % [state_tags, event.get("name", event.get("title", "")), event.get("id", "")])
 	editor_list.item_selected.connect(_select_event)
-	var add := _button("新建事件", true)
-	add.pressed.connect(_new_custom_event)
-	left.add_child(add)
 
-	var center := VBoxContainer.new()
-	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page.add_child(center)
-	center.add_child(_heading("事件节点画布", 20))
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	center.add_child(scroll)
-	editor_preview = HBoxContainer.new()
-	editor_preview.add_theme_constant_override("separation", 12)
-	scroll.add_child(editor_preview)
+	var workspace := VBoxContainer.new()
+	workspace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	workspace.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	workspace.add_theme_constant_override("separation", 6)
+	page.add_child(workspace)
+	var preview_panel := _panel_container()
+	preview_panel.custom_minimum_size.y = 56
+	workspace.add_child(preview_panel)
+	var preview_box := VBoxContainer.new()
+	preview_box.add_theme_constant_override("separation", 3)
+	preview_panel.add_child(preview_box)
+	var preview_header := HBoxContainer.new()
+	preview_header.add_theme_constant_override("separation", 8)
+	preview_box.add_child(preview_header)
+	preview_header.add_child(_heading("事件节点画布", 15))
+	preview_header.add_child(_muted("入口、正文、选项与出口"))
+	editor_preview = HFlowContainer.new()
+	editor_preview.add_theme_constant_override("h_separation", 8)
+	editor_preview.add_theme_constant_override("v_separation", 4)
+	editor_preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	editor_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	preview_box.add_child(editor_preview)
 	_refresh_event_preview(null)
 
 	var inspector := _panel_container()
-	inspector.custom_minimum_size.x = 320
-	page.add_child(inspector)
-	var inspector_scroll := ScrollContainer.new()
-	inspector_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	inspector.add_child(inspector_scroll)
-	var form := VBoxContainer.new()
-	form.add_theme_constant_override("separation", 8)
-	inspector_scroll.add_child(form)
-	form.add_child(_heading("事件属性", 20))
-	form.add_child(_muted("事件ID（用于前置锁和跳转）"))
+	inspector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inspector.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	workspace.add_child(inspector)
+	var form_root := VBoxContainer.new()
+	form_root.add_theme_constant_override("separation", 3)
+	inspector.add_child(form_root)
+	var form_header := HBoxContainer.new()
+	form_header.add_theme_constant_override("separation", 8)
+	form_root.add_child(form_header)
+	form_header.add_child(_heading("事件属性", 17))
+	var save := _button("保存事件", true)
+	save.tooltip_text = "保存自定义事件"
+	save.custom_minimum_size = Vector2(86, 28)
+	save.pressed.connect(_save_editor_event)
+	form_header.add_child(save)
+	var remove := _button("删除事件")
+	remove.tooltip_text = "删除选中自定义事件"
+	remove.custom_minimum_size = Vector2(86, 28)
+	remove.pressed.connect(_delete_editor_event)
+	form_header.add_child(remove)
+	var form_tabs := TabContainer.new()
+	form_tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	form_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	form_root.add_child(form_tabs)
+	var basic_page := VBoxContainer.new()
+	basic_page.name = "基础"
+	basic_page.add_theme_constant_override("separation", 4)
+	form_tabs.add_child(basic_page)
+	var basic_top := HBoxContainer.new()
+	basic_top.add_theme_constant_override("separation", 14)
+	basic_page.add_child(basic_top)
+	var basic_left := VBoxContainer.new()
+	basic_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	basic_left.add_theme_constant_override("separation", 3)
+	basic_top.add_child(basic_left)
+	var basic_right := VBoxContainer.new()
+	basic_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	basic_right.add_theme_constant_override("separation", 3)
+	basic_top.add_child(basic_right)
+	basic_left.add_child(_muted("事件ID（用于前置锁和跳转）"))
 	editor_event_id = LineEdit.new()
 	editor_event_id.placeholder_text = "例如：harbor_clue_01"
-	form.add_child(editor_event_id)
-	form.add_child(_muted("事件名称"))
+	basic_left.add_child(editor_event_id)
+	basic_left.add_child(_muted("事件名称"))
 	editor_name = LineEdit.new()
 	editor_name.placeholder_text = "输入事件名称"
-	form.add_child(editor_name)
-	form.add_child(_muted("事件类型"))
+	editor_name.text_changed.connect(func(_text): _refresh_event_preview(_event_from_editor_fields()))
+	basic_left.add_child(editor_name)
+	var type_location_row := HBoxContainer.new()
+	type_location_row.add_theme_constant_override("separation", 8)
+	basic_left.add_child(type_location_row)
+	var type_box := VBoxContainer.new()
+	type_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_location_row.add_child(type_box)
+	type_box.add_child(_muted("事件类型"))
 	editor_type = OptionButton.new()
 	editor_type.add_item("剧情事件")
 	editor_type.add_item("随机事件")
-	form.add_child(editor_type)
-	form.add_child(_muted("发生地点"))
+	editor_type.item_selected.connect(func(_index): _refresh_event_preview(_event_from_editor_fields()))
+	type_box.add_child(editor_type)
+	var location_box := VBoxContainer.new()
+	location_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_location_row.add_child(location_box)
+	location_box.add_child(_muted("发生地点"))
 	editor_location = OptionButton.new()
 	_refresh_editor_location_picker()
-	form.add_child(editor_location)
-	form.add_child(_muted("场景背景图"))
+	editor_location.item_selected.connect(func(_index): _refresh_event_preview(_event_from_editor_fields()))
+	location_box.add_child(editor_location)
+	basic_right.add_child(_muted("场景背景图"))
 	editor_background_path = LineEdit.new()
 	editor_background_preview = TextureRect.new()
-	form.add_child(_make_image_picker("event_background", editor_background_path, editor_background_preview))
-	form.add_child(_muted("事件音乐（可为空；为空时延续大地图音乐）"))
+	var image_picker := _make_image_picker("event_background", editor_background_path, editor_background_preview)
+	editor_background_preview.custom_minimum_size.y = 0
+	editor_background_preview.visible = false
+	basic_right.add_child(image_picker)
+	basic_right.add_child(_muted("事件音乐（可为空；为空时延续大地图音乐）"))
 	editor_music_path = LineEdit.new()
-	form.add_child(_make_audio_picker("event_music", editor_music_path))
-	editor_lock = CheckBox.new()
-	editor_lock.text = "启用事件锁"
-	form.add_child(editor_lock)
-	form.add_child(_muted("前置事件ID（多个用逗号分隔）"))
+	basic_right.add_child(_make_audio_picker("event_music", editor_music_path))
+	basic_page.add_child(_muted("正文/设计说明"))
+	editor_text = TextEdit.new()
+	editor_text.custom_minimum_size.y = 118
+	editor_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	editor_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	editor_text.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	editor_text.placeholder_text = "输入事件内容；运行时可继续扩展为节点。"
+	editor_text.text_changed.connect(func(): _refresh_event_preview(_event_from_editor_fields()))
+	basic_page.add_child(editor_text)
+	var rules_page := VBoxContainer.new()
+	rules_page.name = "规则"
+	rules_page.add_theme_constant_override("separation", 4)
+	form_tabs.add_child(rules_page)
+	var rules_top := HBoxContainer.new()
+	rules_top.add_theme_constant_override("separation", 8)
+	rules_page.add_child(rules_top)
+	var rules_bottom := HBoxContainer.new()
+	rules_bottom.add_theme_constant_override("separation", 8)
+	rules_page.add_child(rules_bottom)
+	editor_lock = _toggle_button("启用事件锁")
+	editor_lock.toggled.connect(func(_pressed): _refresh_event_preview(_event_from_editor_fields()))
+	rules_top.add_child(editor_lock)
+	var prerequisite_id_box := VBoxContainer.new()
+	prerequisite_id_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rules_top.add_child(prerequisite_id_box)
+	prerequisite_id_box.add_child(_muted("前置事件ID（多个用逗号分隔）"))
 	editor_prerequisites = LineEdit.new()
 	editor_prerequisites.placeholder_text = "例如：harbor_01,tavern_01"
-	form.add_child(editor_prerequisites)
-	form.add_child(_muted("多个前置事件的满足方式"))
+	editor_prerequisites.text_changed.connect(func(_text): _refresh_event_preview(_event_from_editor_fields()))
+	prerequisite_id_box.add_child(editor_prerequisites)
+	var prerequisite_box := VBoxContainer.new()
+	prerequisite_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rules_bottom.add_child(prerequisite_box)
+	prerequisite_box.add_child(_muted("前置满足方式"))
 	editor_prerequisite_mode = OptionButton.new()
 	editor_prerequisite_mode.add_item("全部满足")
 	editor_prerequisite_mode.set_item_metadata(0, "all")
 	editor_prerequisite_mode.add_item("任一满足")
 	editor_prerequisite_mode.set_item_metadata(1, "any")
-	form.add_child(editor_prerequisite_mode)
-	form.add_child(_muted("事件流程"))
+	prerequisite_box.add_child(editor_prerequisite_mode)
+	var flow_box := VBoxContainer.new()
+	flow_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rules_bottom.add_child(flow_box)
+	flow_box.add_child(_muted("事件流程"))
 	editor_flow_mode = OptionButton.new()
 	editor_flow_mode.add_item("可中断事件")
 	editor_flow_mode.set_item_metadata(0, "interruptible")
 	editor_flow_mode.add_item("连续事件")
 	editor_flow_mode.set_item_metadata(1, "continuous")
-	form.add_child(editor_flow_mode)
-	editor_repeatable = CheckBox.new()
-	editor_repeatable.text = "允许重复触发"
-	form.add_child(editor_repeatable)
-	editor_draft = CheckBox.new()
-	editor_draft.text = "事件数据未完善，暂不可使用"
-	form.add_child(editor_draft)
-	editor_ends_continuous = CheckBox.new()
-	editor_ends_continuous.text = "到达此事件时结束连续流程"
-	form.add_child(editor_ends_continuous)
-	form.add_child(_muted("主动开始消耗的行动点"))
+	editor_flow_mode.item_selected.connect(func(_index): _refresh_event_preview(_event_from_editor_fields()))
+	flow_box.add_child(editor_flow_mode)
+	var action_cost_box := VBoxContainer.new()
+	action_cost_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rules_bottom.add_child(action_cost_box)
+	action_cost_box.add_child(_muted("行动点"))
 	editor_action_cost = SpinBox.new()
 	editor_action_cost.min_value = 0
 	editor_action_cost.max_value = 3
 	editor_action_cost.value = 1
-	form.add_child(editor_action_cost)
-	form.add_child(_muted("地图倒计时天数（0表示不开启）"))
+	editor_action_cost.value_changed.connect(func(_value): _refresh_event_preview(_event_from_editor_fields()))
+	action_cost_box.add_child(editor_action_cost)
+	var countdown_box := VBoxContainer.new()
+	countdown_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rules_bottom.add_child(countdown_box)
+	countdown_box.add_child(_muted("倒计时天数"))
 	editor_countdown_days = SpinBox.new()
 	editor_countdown_days.min_value = 0
 	editor_countdown_days.max_value = 99
 	editor_countdown_days.value = 0
-	form.add_child(editor_countdown_days)
-	form.add_child(_muted("倒计时结束后自动触发的事件"))
+	countdown_box.add_child(editor_countdown_days)
+	var timeout_box := VBoxContainer.new()
+	timeout_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rules_bottom.add_child(timeout_box)
+	timeout_box.add_child(_muted("超时目标"))
 	editor_timeout_event = OptionButton.new()
-	form.add_child(editor_timeout_event)
-	form.add_child(_muted("正文/设计说明"))
-	editor_text = TextEdit.new()
-	editor_text.custom_minimum_size.y = 130
-	editor_text.placeholder_text = "输入事件内容；运行时可继续扩展为节点。"
-	form.add_child(editor_text)
-	form.add_child(_heading("选项动作", 18))
+	timeout_box.add_child(editor_timeout_event)
+	var toggle_row := HBoxContainer.new()
+	toggle_row.add_theme_constant_override("separation", 12)
+	rules_page.add_child(toggle_row)
+	editor_repeatable = _toggle_button("允许重复触发")
+	toggle_row.add_child(editor_repeatable)
+	editor_draft = _toggle_button("数据未完善")
+	editor_draft.tooltip_text = "事件数据未完善，暂不可使用"
+	toggle_row.add_child(editor_draft)
+	editor_ends_continuous = _toggle_button("结束连续流程")
+	editor_ends_continuous.tooltip_text = "到达此事件时结束连续流程"
+	toggle_row.add_child(editor_ends_continuous)
+	var options_page := HBoxContainer.new()
+	options_page.name = "选项"
+	options_page.add_theme_constant_override("separation", 14)
+	form_tabs.add_child(options_page)
+	var option_list_box := VBoxContainer.new()
+	option_list_box.custom_minimum_size.x = 280
+	option_list_box.add_theme_constant_override("separation", 4)
+	options_page.add_child(option_list_box)
+	option_list_box.add_child(_heading("选项动作", 16))
 	editor_options_list = ItemList.new()
-	editor_options_list.custom_minimum_size.y = 96
+	editor_options_list.custom_minimum_size.y = 92
+	editor_options_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	editor_options_list.item_selected.connect(_select_editor_option)
-	form.add_child(editor_options_list)
+	option_list_box.add_child(editor_options_list)
 	var option_buttons := HBoxContainer.new()
-	form.add_child(option_buttons)
+	option_buttons.add_theme_constant_override("separation", 6)
+	option_list_box.add_child(option_buttons)
 	var add_option := _button("新增选项")
 	add_option.pressed.connect(_add_editor_option)
 	option_buttons.add_child(add_option)
@@ -3060,65 +3227,120 @@ func _build_event_editor(tabs: TabContainer) -> void:
 	var remove_option := _button("删除选项")
 	remove_option.pressed.connect(_remove_editor_option)
 	option_buttons.add_child(remove_option)
-	form.add_child(_muted("选项文本"))
+	var option_form := VBoxContainer.new()
+	option_form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	option_form.add_theme_constant_override("separation", 3)
+	options_page.add_child(option_form)
+	option_form.add_child(_muted("选项文本"))
 	editor_option_text = LineEdit.new()
-	form.add_child(editor_option_text)
-	form.add_child(_muted("动作类型"))
+	editor_option_text.text_changed.connect(func(_text): _sync_editor_option_from_fields())
+	option_form.add_child(editor_option_text)
+	var action_target_row := HBoxContainer.new()
+	action_target_row.add_theme_constant_override("separation", 8)
+	option_form.add_child(action_target_row)
+	var action_box := VBoxContainer.new()
+	action_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	action_target_row.add_child(action_box)
+	action_box.add_child(_muted("动作类型"))
 	editor_option_action = OptionButton.new()
 	for action_id in EventActionSchema.action_ids():
 		editor_option_action.add_item(EventActionSchema.action_label(str(action_id)))
 		editor_option_action.set_item_metadata(editor_option_action.item_count - 1, str(action_id))
-	form.add_child(editor_option_action)
-	form.add_child(_muted("普通跳转目标"))
+	editor_option_action.item_selected.connect(func(_index):
+		_refresh_option_field_visibility()
+		_sync_editor_option_from_fields()
+	)
+	action_box.add_child(editor_option_action)
+	var next_box := VBoxContainer.new()
+	editor_option_next_box = next_box
+	next_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	action_target_row.add_child(next_box)
+	next_box.add_child(_muted("普通跳转目标"))
 	editor_option_next = OptionButton.new()
-	form.add_child(editor_option_next)
-	form.add_child(_muted("D20 成功 / 失败目标"))
+	editor_option_next.item_selected.connect(func(_index): _sync_editor_option_from_fields())
+	next_box.add_child(editor_option_next)
 	var check_targets := HBoxContainer.new()
-	form.add_child(check_targets)
+	editor_option_check_targets_box = check_targets
+	check_targets.add_theme_constant_override("separation", 8)
+	option_form.add_child(check_targets)
+	var success_box := VBoxContainer.new()
+	success_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	check_targets.add_child(success_box)
+	success_box.add_child(_muted("D20 成功目标"))
 	editor_option_success = OptionButton.new()
 	editor_option_success.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	check_targets.add_child(editor_option_success)
+	editor_option_success.item_selected.connect(func(_index): _sync_editor_option_from_fields())
+	success_box.add_child(editor_option_success)
+	var failure_box := VBoxContainer.new()
+	failure_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	check_targets.add_child(failure_box)
+	failure_box.add_child(_muted("D20 失败目标"))
 	editor_option_failure = OptionButton.new()
 	editor_option_failure.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	check_targets.add_child(editor_option_failure)
-	form.add_child(_muted("检定属性 / 难度"))
+	editor_option_failure.item_selected.connect(func(_index): _sync_editor_option_from_fields())
+	failure_box.add_child(editor_option_failure)
 	var check_row := HBoxContainer.new()
-	form.add_child(check_row)
+	editor_option_check_row = check_row
+	check_row.add_theme_constant_override("separation", 8)
+	option_form.add_child(check_row)
+	var stat_box := VBoxContainer.new()
+	stat_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	check_row.add_child(stat_box)
+	stat_box.add_child(_muted("检定属性"))
 	editor_option_stat = OptionButton.new()
 	for stat in ContentSchema.CHECK_STATS:
 		editor_option_stat.add_item(stat)
-	check_row.add_child(editor_option_stat)
+	editor_option_stat.item_selected.connect(func(_index): _sync_editor_option_from_fields())
+	stat_box.add_child(editor_option_stat)
+	var difficulty_box := VBoxContainer.new()
+	difficulty_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	check_row.add_child(difficulty_box)
+	difficulty_box.add_child(_muted("难度"))
 	editor_option_difficulty = SpinBox.new()
 	editor_option_difficulty.min_value = 1
 	editor_option_difficulty.max_value = 30
 	editor_option_difficulty.value = 10
-	check_row.add_child(editor_option_difficulty)
-	form.add_child(_muted("资源奖励 / 直接获得物品"))
+	editor_option_difficulty.value_changed.connect(func(_value): _sync_editor_option_from_fields())
+	difficulty_box.add_child(editor_option_difficulty)
+	var item_box := VBoxContainer.new()
+	editor_option_item_box = item_box
+	item_box.add_theme_constant_override("separation", 3)
+	option_form.add_child(item_box)
+	item_box.add_child(_muted("资源奖励 / 直接获得物品"))
 	var item_row := HBoxContainer.new()
-	form.add_child(item_row)
+	item_row.add_theme_constant_override("separation", 8)
+	item_box.add_child(item_row)
 	editor_option_resource = OptionButton.new()
 	editor_option_resource.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	editor_option_resource.item_selected.connect(func(_index): _sync_editor_option_from_fields())
 	item_row.add_child(editor_option_resource)
 	editor_option_item = OptionButton.new()
 	editor_option_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	editor_option_item.item_selected.connect(func(_index): _sync_editor_option_from_fields())
 	item_row.add_child(editor_option_item)
-	form.add_child(_muted("设置 flag / 伤害"))
 	var effect_row := HBoxContainer.new()
-	form.add_child(effect_row)
+	editor_option_effect_box = effect_row
+	effect_row.add_theme_constant_override("separation", 8)
+	option_form.add_child(effect_row)
+	var flag_box := VBoxContainer.new()
+	flag_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	effect_row.add_child(flag_box)
+	flag_box.add_child(_muted("设置 flag"))
 	editor_option_flag = LineEdit.new()
 	editor_option_flag.placeholder_text = "可为空"
 	editor_option_flag.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	effect_row.add_child(editor_option_flag)
+	editor_option_flag.text_changed.connect(func(_text): _sync_editor_option_from_fields())
+	flag_box.add_child(editor_option_flag)
+	var damage_box := VBoxContainer.new()
+	damage_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	effect_row.add_child(damage_box)
+	damage_box.add_child(_muted("伤害"))
 	editor_option_damage = SpinBox.new()
 	editor_option_damage.min_value = 0
 	editor_option_damage.max_value = 99
-	effect_row.add_child(editor_option_damage)
-	var save := _button("保存自定义事件", true)
-	save.pressed.connect(_save_editor_event)
-	form.add_child(save)
-	var remove := _button("删除选中自定义事件")
-	remove.pressed.connect(_delete_editor_event)
-	form.add_child(remove)
+	editor_option_damage.value_changed.connect(func(_value): _sync_editor_option_from_fields())
+	damage_box.add_child(editor_option_damage)
+	_new_custom_event()
 
 func _select_event(index: int) -> void:
 	selected_editor_index = index
@@ -3218,6 +3440,45 @@ func _select_editor_option(index: int) -> void:
 		editor_options_list.select(index)
 	_write_editor_option_fields(editor_options[index])
 
+func _sync_editor_option_from_fields() -> void:
+	if selected_editor_option_index < 0 or selected_editor_option_index >= editor_options.size():
+		return
+	editor_options[selected_editor_option_index] = _read_editor_option_fields()
+	if editor_options_list != null and selected_editor_option_index < editor_options_list.item_count:
+		editor_options_list.set_item_text(selected_editor_option_index, _option_summary(editor_options[selected_editor_option_index]))
+	_refresh_event_preview(_event_from_editor_fields())
+
+func _refresh_option_field_visibility() -> void:
+	if editor_option_action == null or editor_option_action.item_count == 0:
+		return
+	var action_id := str(editor_option_action.get_item_metadata(editor_option_action.selected))
+	var is_plain_jump := action_id.is_empty()
+	var is_d20 := action_id == "d20_check"
+	var is_resource := action_id == "resource_check"
+	if editor_option_next_box != null:
+		editor_option_next_box.visible = is_plain_jump
+	if editor_option_check_targets_box != null:
+		editor_option_check_targets_box.visible = is_d20
+	if editor_option_check_row != null:
+		editor_option_check_row.visible = is_d20 or is_resource
+	if editor_option_item_box != null:
+		editor_option_item_box.visible = is_plain_jump or is_resource
+		if editor_option_item != null:
+			editor_option_item.visible = is_plain_jump
+		if editor_option_resource != null:
+			editor_option_resource.visible = is_resource
+	if editor_option_effect_box != null:
+		editor_option_effect_box.visible = is_plain_jump
+
+func _suggest_custom_event_id() -> String:
+	var index: int = (GameState.custom_content.get("events", []) as Array).size() + 1
+	while true:
+		var candidate := "custom_event_%03d" % index
+		if not events.has(candidate) and not _custom_event_id_conflicts(candidate, -1):
+			return candidate
+		index += 1
+	return "custom_event_001"
+
 func _write_editor_option_fields(option: Dictionary) -> void:
 	editor_option_text.text = option.get("text", "继续")
 	_select_picker_metadata(editor_option_action, str(option.get("action", "")))
@@ -3230,6 +3491,7 @@ func _write_editor_option_fields(option: Dictionary) -> void:
 	_select_picker_metadata(editor_option_item, str(option.get("item", "")))
 	editor_option_damage.value = int(option.get("damage", 0))
 	editor_option_flag.text = str(option.get("flag", ""))
+	_refresh_option_field_visibility()
 
 func _read_editor_option_fields() -> Dictionary:
 	var option := {"text": editor_option_text.text.strip_edges() if not editor_option_text.text.strip_edges().is_empty() else "继续"}
@@ -3291,6 +3553,12 @@ func _event_from_editor_fields() -> Dictionary:
 		timeout_event = str(editor_timeout_event.get_item_metadata(editor_timeout_event.selected))
 	return {"type":editor_type.get_item_text(editor_type.selected), "location":editor_location.get_item_text(editor_location.selected), "locked":editor_lock.button_pressed, "draft":editor_draft.button_pressed, "prerequisites":editor_prerequisites.text.split(","), "flow_mode":editor_flow_mode.get_item_metadata(editor_flow_mode.selected), "action_cost":int(editor_action_cost.value), "countdown_days":int(editor_countdown_days.value) if editor_countdown_days != null else 0, "timeout_event":timeout_event, "text":editor_text.text, "options":editor_options}
 
+func _preview_summary(text: String, limit: int = 28) -> String:
+	var summary := text.replace("\r", " ").replace("\n", " ").strip_edges()
+	while summary.contains("  "):
+		summary = summary.replace("  ", " ")
+	return summary.left(limit) + ("..." if summary.length() > limit else "")
+
 func _refresh_event_preview(event) -> void:
 	for child in editor_preview.get_children():
 		child.queue_free()
@@ -3298,31 +3566,42 @@ func _refresh_event_preview(event) -> void:
 	if event == null:
 		nodes = [["入口", "选择左侧事件"], ["对话", "编辑属性"], ["出口", "保存内容"]]
 	else:
-		var lock_text := "\n未完善：不可使用" if event.get("draft", false) else ("\n锁：%s" % ",".join(event.get("prerequisites", [])) if event.get("locked", false) else "\n无事件锁")
-		nodes.append(["入口", "%s\n地点：%s\n%s · %d行动点%s" % [event.get("type", "剧情事件"), event.get("location", "未设置"), "连续" if event.get("flow_mode", "interruptible") == "continuous" else "可中断", int(event.get("action_cost", 1)), lock_text]])
-		nodes.append(["对话节点", str(event.get("text", "")).left(56)])
+		var lock_text := "未完善" if event.get("draft", false) else ("锁：" + ",".join(event.get("prerequisites", [])).left(10) if event.get("locked", false) else "无事件锁")
+		nodes.append(["入口", "%s / %s / %s / %d行动点 / %s" % [event.get("type", "剧情事件"), event.get("location", "未设置"), "连续" if event.get("flow_mode", "interruptible") == "continuous" else "可中断", int(event.get("action_cost", 1)), lock_text]])
+		nodes.append(["对话节点", _preview_summary(str(event.get("text", "")))])
+		var option_count := 0
 		for option in event.get("options", []):
-			nodes.append(["选项节点", str(option.get("text", "继续"))])
+			if option_count < 2:
+				nodes.append(["选项节点", _preview_summary(str(option.get("text", "继续")), 18)])
+			option_count += 1
+		if option_count > 2:
+			nodes.append(["更多选项", "另有 %d 个选项" % (option_count - 2)])
 		nodes.append(["出口", str(event.get("next", "后续事件"))])
 	for i in range(nodes.size()):
 		var card := _panel_container(panel_alt)
-		card.custom_minimum_size = Vector2(185, 145)
+		card.custom_minimum_size = Vector2(126, 42)
 		editor_preview.add_child(card)
 		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 0)
 		card.add_child(v)
-		v.add_child(_heading(nodes[i][0], 17))
+		v.add_child(_heading(nodes[i][0], 14))
 		var detail := _muted(nodes[i][1])
+		detail.custom_minimum_size = Vector2(0, 20)
 		detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		detail.clip_text = true
+		detail.max_lines_visible = 2
 		v.add_child(detail)
 		if i < nodes.size() - 1:
-			var arrow := _heading("→", 28)
-			arrow.custom_minimum_size.x = 40
+			var arrow := _heading("→", 18)
+			arrow.custom_minimum_size = Vector2(18, 42)
 			editor_preview.add_child(arrow)
 
 func _new_custom_event() -> void:
 	selected_editor_index = -1
+	if editor_list != null:
+		editor_list.deselect_all()
 	_refresh_event_option_pickers()
-	editor_event_id.text = ""
+	editor_event_id.text = _suggest_custom_event_id()
 	editor_event_id.editable = true
 	editor_name.text = "未命名事件"
 	editor_type.select(0)
