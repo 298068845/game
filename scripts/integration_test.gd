@@ -5,6 +5,12 @@ func _initialize() -> void:
 	var app = load("res://main.tscn").instantiate()
 	root.add_child(app)
 	await process_frame
+	if app.events.is_empty():
+		assert(app.database.get("characters", []).is_empty())
+		assert(app.database.get("enemies", []).is_empty())
+		assert(app.database.get("equipment", []).is_empty())
+		assert(app.database.get("items", []).is_empty())
+		quit()
 	assert(not app._event_unlocked("harbor_01"))
 	assert(not app._location_unlocked("雾港码头"))
 	app.show_event("harbor_01")

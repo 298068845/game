@@ -136,10 +136,7 @@ const MAP_CANVAS_FALLBACK_SIZE := Vector2(980, 300)
 const MAP_CLICK_ZOOM_SCALE := 1.35
 const MAP_CLICK_ZOOM_DURATION := 0.34
 const MAP_CLICK_FADE_ALPHA := 0.32
-const DEFAULT_SELL_ITEM_PRICES := {
-	"item.silver_salt": 5,
-	"item.salvage": 2
-}
+const DEFAULT_SELL_ITEM_PRICES := {}
 const LOCATION_ENTRY := {
 	"渡船": "intro_01",
 	"雾港码头": "harbor_01",
@@ -952,12 +949,6 @@ func show_inn() -> void:
 	top_row.add_child(intro)
 	var intro_box := intro.get_child(0) as VBoxContainer
 	intro_box.add_child(_muted("雾历 %s  ·  行动 %d/%d  ·  饱腹 %d/%d" % [GameState.date_text().replace("雾历 ", ""), int(GameState.world.action_points), int(GameState.world.max_action_points), int(GameState.player.satiety), int(GameState.player.max_satiety)]))
-	var top_spacer := Control.new()
-	top_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top_row.add_child(top_spacer)
-	var stock := _facility_card("可用材料", "药草 %d  /  残骸 %d" % [int(GameState.player.inventory.get("item.herb", 0)), int(GameState.player.inventory.get("item.salvage", 0))])
-	stock.custom_minimum_size = Vector2(280, 120)
-	top_row.add_child(stock)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 26)
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -976,34 +967,15 @@ func show_inn() -> void:
 	rest.custom_minimum_size = Vector2(250, 34)
 	rest.pressed.connect(rest_day)
 	rest_box.add_child(rest)
-	var craft_card := _facility_card("调配补给", "用采集到的材料制作路上能用的药剂和口粮。")
+	var craft_card := _facility_card("调配补给", "当前没有内置物品配方。")
 	craft_card.custom_minimum_size = Vector2(420, 230)
 	craft_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(craft_card)
 	var craft_box := craft_card.get_child(0) as VBoxContainer
-	craft_box.add_child(_facility_rule_line("药草 x2  →  提神药剂"))
-	craft_box.add_child(_facility_rule_line("药草 x1 + 残骸 x1  →  旅行口粮"))
+	craft_box.add_child(_facility_rule_line("可在内容工具中重新添加物品后扩展配方。"))
 	var craft_spacer := Control.new()
 	craft_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	craft_box.add_child(craft_spacer)
-	var craft_tonic := _outline_button("调配提神药剂")
-	craft_tonic.custom_minimum_size = Vector2(250, 34)
-	craft_tonic.disabled = not GameState.has_item("item.herb", 2)
-	craft_tonic.pressed.connect(func():
-		if GameState.craft_item("item.tonic"):
-			_toast("调配出提神药剂")
-			show_inn()
-	)
-	craft_box.add_child(craft_tonic)
-	var craft_ration := _outline_button("整理旅行口粮")
-	craft_ration.custom_minimum_size = Vector2(250, 34)
-	craft_ration.disabled = not (GameState.has_item("item.salvage") and GameState.has_item("item.herb"))
-	craft_ration.pressed.connect(func():
-		if GameState.craft_item("item.ration"):
-			_toast("整理出旅行口粮")
-			show_inn()
-	)
-	craft_box.add_child(craft_ration)
 	var back := _outline_button("返回地图")
 	back.custom_minimum_size = Vector2(260, 34)
 	back.pressed.connect(func(): _return_from_facility_to_map(root))
@@ -1422,7 +1394,10 @@ func show_menu() -> void:
 func _new_game() -> void:
 	GameState.reset_run()
 	_update_time_status()
-	show_event("intro_01")
+	if events.has("intro_01"):
+		show_event("intro_01")
+	else:
+		show_map()
 
 func _load_game() -> void:
 	if GameState.load_game():
@@ -1430,7 +1405,11 @@ func _load_game() -> void:
 		if not GameState.battle.is_empty() and GameState.battle.get("active", false):
 			show_battle(false)
 		else:
-			show_event(GameState.world.get("scene", "intro_01"))
+			var scene_id := str(GameState.world.get("scene", ""))
+			if not scene_id.is_empty() and events.has(scene_id):
+				show_event(scene_id)
+			else:
+				show_map()
 		_toast("存档读取成功")
 	else:
 		_toast("存档不存在或格式错误")
@@ -1438,7 +1417,11 @@ func _load_game() -> void:
 func _continue_game() -> void:
 	if current_view == "game" or current_view == "battle":
 		return
-	show_event(GameState.world.get("scene", "intro_01"))
+	var scene_id := str(GameState.world.get("scene", ""))
+	if not scene_id.is_empty() and events.has(scene_id):
+		show_event(scene_id)
+	else:
+		show_map()
 
 func show_event(event_id: String) -> void:
 	if not events.has(event_id):
@@ -2031,17 +2014,7 @@ func _map_bag_item_row(item_id: String) -> PanelContainer:
 	item_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(item_title)
 	info.add_child(_muted(kind))
-	if item_id == "item.ration":
-		var eat := _outline_button("食用")
-		eat.custom_minimum_size = Vector2(76, 30)
-		eat.pressed.connect(func():
-			if GameState.eat_ration():
-				_update_time_status()
-				_toast("食用旅行口粮，恢复30点饱腹")
-			_show_map_bag_panel()
-		)
-		row.add_child(eat)
-	elif definition.has("slot"):
+	if definition.has("slot"):
 		var equip := _outline_button("装备")
 		equip.custom_minimum_size = Vector2(76, 30)
 		equip.pressed.connect(func():
@@ -2345,8 +2318,9 @@ func _perform_resource_check(option: Dictionary) -> void:
 		quantity = 3
 	elif int(roll.total) >= difficulty:
 		quantity = 2
-	var resource_id := str(option.get("resource", "item.ration"))
-	GameState.add_item(resource_id, quantity)
+	var resource_id := str(option.get("resource", ""))
+	if not resource_id.is_empty():
+		GameState.add_item(resource_id, quantity)
 	var event_id := str(GameState.world.scene)
 	GameState.world.repeat_counts[event_id] = int(GameState.world.repeat_counts.get(event_id, 0)) + 1
 	GameState.add_log("%s检定%d，获得%s×%d" % [stat, int(roll.total), _item_name(resource_id), quantity])
@@ -2473,12 +2447,7 @@ func show_inventory() -> void:
 		var kind: String = str(definition.get("slot", definition.get("type", "其他")))
 		info.add_child(_heading("%s ×%d" % [definition.get("name", item_id), int(GameState.player.inventory[item_id])], 17))
 		info.add_child(_muted("%s · %s" % [kind, definition.get("description", "")]))
-		if str(item_id) == "item.ration":
-			var eat := _button("食用", true)
-			eat.custom_minimum_size.x = 76
-			eat.pressed.connect(_eat_ration)
-			row.add_child(eat)
-		elif definition.has("slot"):
+		if definition.has("slot"):
 			var equip := _button("装备", true)
 			equip.custom_minimum_size.x = 76
 			equip.pressed.connect(func(): _equip_from_bag(str(item_id), str(definition.slot)))
@@ -2622,9 +2591,8 @@ func show_battle(new_battle: bool, battle_config: Dictionary = {}) -> void:
 	var actions := VBoxContainer.new()
 	actions.add_theme_constant_override("separation", 8)
 	combat_box.add_child(actions)
-	for spec in [["攻击", "attack"], ["强攻", "power"], ["快攻", "quick"], ["防御姿态", "guard"], ["洞察弱点", "inspect"], ["使用提神药剂", "item"], ["撤退重整", "retreat"]]:
+	for spec in [["攻击", "attack"], ["强攻", "power"], ["快攻", "quick"], ["防御姿态", "guard"], ["洞察弱点", "inspect"], ["撤退重整", "retreat"]]:
 		var b := _button(spec[0], spec[1] == "attack")
-		b.disabled = spec[1] == "item" and not GameState.has_item("item.tonic")
 		b.pressed.connect(func(): _battle_action(spec[1]))
 		actions.add_child(b)
 	var log_card := _panel_container()
@@ -2684,11 +2652,6 @@ func _battle_action(action: String) -> void:
 			var check: Dictionary = DiceClass.d20(floori((_effective_check("洞察") - 8) / 2.0))
 			battle_state.weakened = check.total >= 12
 			battle_state.log.append("洞察检定%d：%s。" % [check.total, "发现胸口盐核，后续伤害+2" if battle_state.weakened else "没能看穿它的动作"])
-		"item":
-			GameState.remove_item("item.tonic")
-			var healed: int = mini(6, _effective_combat("生命") - int(GameState.player.hp))
-			GameState.player.hp = int(GameState.player.hp) + healed
-			battle_state.log.append("你使用提神药剂，恢复%d点生命。" % healed)
 		"retreat":
 			battle_state.active = false
 			GameState.world.active_continuous = ""
@@ -3520,7 +3483,7 @@ func _read_editor_option_fields() -> Dictionary:
 				option.stat = editor_option_stat.get_item_text(editor_option_stat.selected)
 				option.difficulty = int(editor_option_difficulty.value)
 				var resource_id := str(editor_option_resource.get_item_metadata(editor_option_resource.selected))
-				option.resource = resource_id if not resource_id.is_empty() else "item.ration"
+				option.resource = resource_id
 	return option
 
 func _add_editor_option() -> void:

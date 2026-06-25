@@ -25,16 +25,6 @@ func _init() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(package_path))
 	var content_library := ContentLibrary.new()
 	content_library.load_from_resources("res://data/scenario.json", "res://data/database.json", ContentSchema.empty_custom_content())
-	assert(content_library.has_event("intro_01"))
-	assert(content_library.all_equipment().size() >= 6)
-	assert(scenario.events.size() >= 19)
-	assert(database.characters.size() >= 3)
-	assert(database.enemies.size() >= 1)
-	assert(database.items.size() >= 3)
-	assert(database.equipment.size() >= 6)
-	var required_slots := ["头盔", "盔甲", "武器", "臂甲", "鞋子", "饰品"]
-	for slot in required_slots:
-		assert(database.equipment.any(func(entry): return entry.slot == slot), "缺少装备种类：" + slot)
 	for entity in database.characters + database.enemies:
 		assert(entity.check_stats.size() == 5, "检定五维不完整：" + entity.name)
 		assert(entity.combat_stats.size() == 5, "战斗五维不完整：" + entity.name)
@@ -59,7 +49,5 @@ func _init() -> void:
 			assert(["all", "any"].has(event.get("prerequisite_mode", "")), "前置满足模式错误：" + event.id)
 			for required in event.prerequisites:
 				assert(ids.has(required), "前置事件不存在：%s -> %s" % [event.id, required])
-	assert(ids.has("after_battle"))
-	assert(scenario.events.filter(func(event): return event.get("repeatable", false)).size() >= 3)
 	print("SMOKE TEST PASS: %d events, %d characters, %d enemies, %d equipment, %d items" % [scenario.events.size(), database.characters.size(), database.enemies.size(), database.equipment.size(), database.items.size()])
 	quit()

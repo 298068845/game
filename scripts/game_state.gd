@@ -4,14 +4,8 @@ const SAVE_PATH := "user://mist_harbor_save.json"
 const CONTENT_PATH := "user://mist_harbor_custom_content.json"
 const SAVE_VERSION := 2
 const EQUIPMENT_SLOTS := ["头盔", "盔甲", "武器", "臂甲", "鞋子", "饰品"]
-const LEGACY_ITEM_IDS := {
-	"旧港通行证": "item.pass", "提神药剂": "item.tonic", "裂纹透镜": "item.lens",
-	"银灰盐块": "item.silver_salt", "林鸦的怀表": "quest.linya_watch"
-}
-const CRAFT_RECIPES := {
-	"item.tonic": {"name": "调配提神药剂", "cost": {"item.herb": 2}},
-	"item.ration": {"name": "整理旅行口粮", "cost": {"item.salvage": 1, "item.herb": 1}}
-}
+const LEGACY_ITEM_IDS := {}
+const CRAFT_RECIPES := {}
 
 var player: Dictionary
 var world: Dictionary
@@ -32,13 +26,13 @@ func reset_run() -> void:
 		"satiety": 80,
 		"max_satiety": 100,
 		"max_hp_penalty": 0,
-		"equipment": {"头盔": null, "盔甲": "equip.archive_coat", "武器": "equip.signal_pistol", "臂甲": null, "鞋子": null, "饰品": null},
-		"inventory": {"item.pass": 1, "item.tonic": 1, "item.ration": 2, "equip.watch_cap": 1},
+		"equipment": {"头盔": null, "盔甲": null, "武器": null, "臂甲": null, "鞋子": null, "饰品": null},
+		"inventory": {},
 		"coins": 0,
 		"training_growth": 3,
 		"training_combat": 3
 	}
-	world = {"scene": "intro_01", "location": "渡船", "visited": [], "flags": {}, "minutes": 0, "log": [], "battle_won": false, "date":{"year":1,"month":1,"day":1}, "action_points":3, "max_action_points":3, "active_continuous":"", "repeat_counts":{}, "event_countdowns": {}, "quests": {}, "relations": {"林鸦": 0, "老乔": 0, "港民": 0}, "random_seed": 137, "random_cooldowns": {}}
+	world = {"scene": "", "location": "", "visited": [], "flags": {}, "minutes": 0, "log": [], "battle_won": false, "date":{"year":1,"month":1,"day":1}, "action_points":3, "max_action_points":3, "active_continuous":"", "repeat_counts":{}, "event_countdowns": {}, "quests": {}, "relations": {}, "random_seed": 137, "random_cooldowns": {}}
 	battle = {}
 
 func save_game() -> bool:
@@ -238,7 +232,4 @@ func rest_day() -> Dictionary:
 	return {"satiety_cost":satiety_cost, "shortage":shortage, "hp_penalty":hp_penalty}
 
 func eat_ration() -> bool:
-	if not remove_item("item.ration"):
-		return false
-	player.satiety = mini(int(player.max_satiety), int(player.satiety) + 30)
-	return true
+	return false
